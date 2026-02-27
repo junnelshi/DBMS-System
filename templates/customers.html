@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}Customers{% endblock %}
+{% block page_title %}CUSTOMERS{% endblock %}
+
+{% block content %}
+
+<div class="customers-header">
+  <span style="font-size:0.85rem;color:var(--muted);">
+    {{ customers | length }} registered customer(s)
+  </span>
+  <div style="display:flex;gap:12px;align-items:center;">
+    <input class="filter-input" id="cust-search"
+           placeholder="Search name, email, license..."
+           oninput="filterCustomerRows()"
+           style="width:260px;"/>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel-header">
+    <div class="panel-title">REGISTERED CUSTOMERS</div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Phone</th>
+          <th>Date of Birth</th>
+          <th>Driver's License</th>
+          <th>Address</th>
+          <th>Joined</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in customers %}
+        <tr data-name="{{ c.firstname }} {{ c.lastname }}"
+            data-idno="{{ c.license_no }}"
+            data-email="{{ c.email }}">
+          <td style="color:var(--muted2);">{{ loop.index }}</td>
+          <td>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div style="width:34px;height:34px;border-radius:9px;
+                          background:rgba(59,130,246,0.10);
+                          display:flex;align-items:center;justify-content:center;
+                          font-family:'Bebas Neue',sans-serif;font-size:1rem;
+                          color:var(--accent);flex-shrink:0;">
+                {{ c.firstname[0].upper() }}
+              </div>
+              <div>
+                <div style="font-weight:600;">{{ c.firstname }} {{ c.lastname }}</div>
+              </div>
+            </div>
+          </td>
+          <td style="font-size:0.82rem;">{{ c.email }}</td>
+          <td style="font-size:0.82rem;">{{ c.phone }}</td>
+          <td style="font-size:0.82rem;color:var(--muted);">{{ c.birthdate or '—' }}</td>
+          <td>
+            <span style="font-size:0.78rem;background:#f1f5f9;padding:3px 8px;border-radius:5px;color:var(--text2);">
+              {{ c.license_no }}
+            </span>
+          </td>
+          <td style="font-size:0.8rem;color:var(--muted);max-width:160px;">
+            {{ c.address or '—' }}
+          </td>
+          <td style="font-size:0.78rem;color:var(--muted);">
+            {{ c.created_at[:10] if c.created_at else '—' }}
+          </td>
+          <td>
+            <button class="btn btn-danger btn-sm"
+                    onclick="confirmDeleteCustomer({{ c.id }})">Remove</button>
+            <form id="deleteCustomerForm-{{ c.id }}"
+                  action="{{ url_for('customer_delete', customer_id=c.id) }}"
+                  method="POST" style="display:none;"></form>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="9" style="text-align:center;color:var(--muted);padding:32px;">
+            No customers registered yet.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}DASHBOARD{% endblock %}
+
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+
+<!-- STAT CARDS -->
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-label">Available Motors</div>
+    <div class="stat-value">{{ stats.available }}</div>
+    <div class="stat-sub">Ready to rent</div>
+    <div class="stat-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="6" cy="17" r="3"/><circle cx="18" cy="17" r="3"/>
+        <path d="M9 17h6M3 17H1v-4l5-5h7l3 4h2l2 2v3h-2"/>
+      </svg>
+    </div>
+  </div>
+
+  <div class="stat-card green">
+    <div class="stat-label">Currently Rented</div>
+    <div class="stat-value" style="color:#16a34a;">{{ stats.rented }}</div>
+    <div class="stat-sub">Active rentals</div>
+    <div class="stat-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2
+                 M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2M9 12h6M9 16h6"/>
+      </svg>
+    </div>
+  </div>
+
+  <div class="stat-card red">
+    <div class="stat-label">Overdue</div>
+    <div class="stat-value" style="color:#dc2626;">{{ stats.overdue }}</div>
+    <div class="stat-sub">{{ stats.pending }} pending approval</div>
+    <div class="stat-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="12" y1="8" x2="12" y2="12"/>
+        <line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-label">Total Revenue</div>
+    <div class="stat-value" style="font-size:2rem;">
+      &#8369;{{ '{:,.0f}'.format(stats.revenue) }}
+    </div>
+    <div class="stat-sub">From returned rentals</div>
+    <div class="stat-icon">
+       ₱
+    </div>
+  </div>
+</div>
+
+<!-- ROW 1: Recent Rentals + Fleet Chart -->
+<div class="grid-2">
+  <div class="panel">
+    <div class="panel-header">
+      <div class="panel-title">RECENT RENTALS</div>
+      <a href="{{ url_for('rentals') }}" class="panel-action">View All →</a>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Customer</th><th>Motor</th><th>Start</th><th>End</th><th>Status</th><th>Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in rentals[:5] %}
+          <tr>
+            <td><strong>{{ r.customer }}</strong></td>
+            <td>{{ r.motor }}</td>
+            <td style="color:var(--muted);font-size:0.8rem;">{{ r.start_date }}</td>
+            <td style="color:var(--muted);font-size:0.8rem;">{{ r.end_date }}</td>
+            <td>
+              <span class="status status-{{ r.status.lower() }}">{{ r.status }}</span>
+            </td>
+            <td style="color:var(--accent);font-weight:700;">
+              &#8369;{{ '{:,.2f}'.format(r.total_cost) }}
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="6" style="text-align:center;color:var(--muted);padding:24px;">No rentals yet.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header">
+      <div class="panel-title">FLEET STATUS</div>
+    </div>
+    <div class="chart-wrap">
+      <canvas id="fleetChart"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- ROW 2: Revenue Chart + Top Motors -->
+<div class="grid-2-equal">
+  <div class="panel">
+    <div class="panel-header">
+      <div class="panel-title">REVENUE TREND</div>
+      <span style="font-size:0.7rem;color:var(--muted);">Last 6 months</span>
+    </div>
+    <div class="chart-wrap">
+      <canvas id="revenueChart"></canvas>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header">
+      <div class="panel-title">TOP RENTED MOTORS</div>
+    </div>
+    {% set top_motors = [
+      ('Honda Click 125i', 85),
+      ('Yamaha NMAX 155',  70),
+      ('Suzuki Raider',    55),
+      ('Honda ADV 160',    40),
+    ] %}
+    {% for name, pct in top_motors %}
+    <div style="margin-bottom:16px;">
+      <div style="display:flex;justify-content:space-between;font-size:0.82rem;margin-bottom:5px;">
+        <span>{{ name }}</span>
+        <span style="color:var(--accent);font-weight:700;">{{ pct }}%</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" style="width:{{ pct }}%"></div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  initFleetChart({{ stats.available }}, {{ stats.rented }}, {{ stats.pending }});
+  initRevenueChart(
+    ['Sep','Oct','Nov','Dec','Jan','Feb'],
+    [12000, 18500, 14200, 22000, 19800, 25500]
+  );
+</script>
+{% endblock %}

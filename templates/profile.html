@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}Profile{% endblock %}
+{% block page_title %}MY PROFILE{% endblock %}
+
+{% block content %}
+
+<div class="profile-grid">
+
+  <!-- LEFT: Info card -->
+  <div>
+    <div class="profile-card">
+      <div class="profile-avatar">
+        {{ session.get('user_name', 'U')[0].upper() }}
+      </div>
+      <div class="profile-name">{{ session.get('user_name') }}</div>
+      <div class="profile-idno">
+        {% if session.get('role') == 'admin' %}
+          Administrator
+        {% elif customer %}
+          {{ customer.email }}
+        {% endif %}
+      </div>
+
+      {% if customer %}
+      <div class="profile-detail">
+        <div class="profile-detail-row">
+          <span>Phone</span>
+          <span>{{ customer.phone }}</span>
+        </div>
+        <div class="profile-detail-row">
+          <span>Date of Birth</span>
+          <span>{{ customer.birthdate or '—' }}</span>
+        </div>
+        <div class="profile-detail-row">
+          <span>Driver's License</span>
+          <span style="font-size:0.8rem;">{{ customer.license_no }}</span>
+        </div>
+        <div class="profile-detail-row">
+          <span>Address</span>
+          <span style="font-size:0.8rem;text-align:right;max-width:160px;">{{ customer.address or '—' }}</span>
+        </div>
+        <div class="profile-detail-row">
+          <span>Member Since</span>
+          <span style="font-size:0.8rem;">{{ customer.created_at[:10] if customer.created_at else '—' }}</span>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- RIGHT -->
+  <div style="display:flex;flex-direction:column;gap:18px;">
+
+    <!-- Change password -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">CHANGE PASSWORD</div>
+      </div>
+      <form action="{{ url_for('profile') }}" method="POST" style="max-width:400px;">
+        <div class="form-group">
+          <label class="form-label">Current Password</label>
+          <input class="form-control" type="password" name="current_password"
+                 placeholder="••••••••" required/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">New Password</label>
+          <input class="form-control" type="password" name="new_password"
+                 placeholder="••••••••" required/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Confirm New Password</label>
+          <input class="form-control" type="password" name="confirm_password"
+                 placeholder="••••••••" required/>
+        </div>
+        <button type="submit" class="btn btn-primary">UPDATE PASSWORD</button>
+      </form>
+    </div>
+
+    {% if session.get('role') == 'customer' %}
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">MY RENTAL HISTORY</div>
+        <a href="{{ url_for('rentals') }}" class="panel-action">View All →</a>
+      </div>
+      <p style="color:var(--muted);font-size:0.85rem;">
+        View and manage all your rental bookings in the Rentals section.
+      </p>
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+
+{% endblock %}

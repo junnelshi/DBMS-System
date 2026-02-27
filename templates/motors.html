@@ -1,0 +1,283 @@
+{% extends "base.html" %}
+{% block title %}Motors{% endblock %}
+{% block page_title %}MOTORS{% endblock %}
+
+{% block topbar_actions %}
+  {% if session.get('role') == 'admin' %}
+  <button class="btn btn-primary" onclick="openAddMotor()">+ Add Motor</button>
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+
+<!-- FILTER BAR -->
+<div class="filter-bar">
+  <div class="filter-group">
+    <label class="filter-label">Search</label>
+    <input class="filter-input" id="motor-search" type="text"
+           placeholder="Brand, model, plate..."
+           oninput="filterMotorCards()"
+           style="min-width:220px;"/>
+  </div>
+  <div class="filter-group">
+    <label class="filter-label">Status</label>
+    <select class="filter-input" id="motor-status-filter" onchange="filterMotorCards()">
+      <option value="">All Status</option>
+      <option {% if status_filter=='Available' %}selected{% endif %}>Available</option>
+      <option {% if status_filter=='Rented' %}selected{% endif %}>Rented</option>
+      <option {% if status_filter=='Under Maintenance' %}selected{% endif %}>Under Maintenance</option>
+    </select>
+  </div>
+  <div class="filter-group">
+    <label class="filter-label">Type</label>
+    <select class="filter-input" id="motor-type-filter" onchange="filterMotorCards()">
+      <option value="">All Types</option>
+      <option {% if type_filter=='Scooter' %}selected{% endif %}>Scooter</option>
+      <option {% if type_filter=='Sport' %}selected{% endif %}>Sport</option>
+      <option {% if type_filter=='Underbone' %}selected{% endif %}>Underbone</option>
+      <option {% if type_filter=='Cruiser' %}selected{% endif %}>Cruiser</option>
+      <option {% if type_filter=='Trail' %}selected{% endif %}>Trail</option>
+      <option {% if type_filter=='Electric' %}selected{% endif %}>Electric</option>
+    </select>
+  </div>
+</div>
+
+<!-- MOTOR CARDS -->
+{% if motors %}
+<div class="motor-grid">
+  {% for m in motors %}
+
+  {# ── Build the image filename from brand + model ── #}
+  {% set img_name = m.brand ~ ' ' ~ m.model %}
+
+  <div class="motor-card"
+       data-brand="{{ m.brand }}"
+       data-model="{{ m.model }}"
+       data-plate="{{ m.plate }}"
+       data-status="{{ m.status }}"
+       data-type="{{ m.type }}">
+
+    <div class="motor-img">
+      <img
+        src="{{ url_for('static', filename='images/' ~ img_name ~ '.png') }}"
+        alt="{{ m.brand }} {{ m.model }}"
+        onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+      />
+      <!-- Fallback SVG shown only if image fails to load -->
+      <div class="motor-img-fallback" style="display:none; width:100%; height:100%; align-items:center; justify-content:center;">
+        <svg viewBox="0 0 200 100" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:110px;">
+          <circle cx="45"  cy="72" r="24" stroke="#088395" stroke-width="4"/>
+          <circle cx="45"  cy="72" r="12" stroke="#088395" stroke-width="2"/>
+          <circle cx="155" cy="72" r="24" stroke="#088395" stroke-width="4"/>
+          <circle cx="155" cy="72" r="12" stroke="#088395" stroke-width="2"/>
+          <path d="M69 72 L88 45 L126 40 L148 52 L155 72" stroke="#088395" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M88 45 L100 30 L120 32 L120 40" stroke="#088395" stroke-width="3" stroke-linecap="round"/>
+          <rect x="90" y="50" width="32" height="20" rx="3" stroke="#088395" stroke-width="3"/>
+          <path d="M122 65 L140 70" stroke="#088395" stroke-width="2.5" stroke-linecap="round"/>
+          <path d="M69 65 L55 71"   stroke="#088395" stroke-width="3"   stroke-linecap="round"/>
+          <path d="M73 68 L59 71"   stroke="#088395" stroke-width="3"   stroke-linecap="round"/>
+          <path d="M87 45 L82 36 L92 32" stroke="#088395" stroke-width="2.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="motor-img-badge">
+        <span class="status status-{{ m.status.lower().replace(' ', '-') }}">{{ m.status }}</span>
+      </div>
+    </div>
+
+    <div class="motor-body">
+      <div class="motor-name">{{ m.brand }} {{ m.model }}</div>
+      <div class="motor-meta">{{ m.year }} &middot; {{ m.type }} &middot; {{ m.plate }}</div>
+      <div class="motor-price">&#8369;{{ '{:,.0f}'.format(m.rate_per_day) }}<span>/day</span></div>
+      {% if m.notes %}
+      <div style="font-size:0.73rem;color:var(--muted);margin-top:6px;">{{ m.notes }}</div>
+      {% endif %}
+
+      <div class="motor-actions">
+        {% if m.status == 'Available' %}
+          <button class="btn btn-primary btn-sm"
+                  onclick="openRentalModal('{{ m.id }}', '{{ m.brand }} {{ m.model }}')">
+            Book
+          </button>
+        {% else %}
+          <button class="btn btn-outline btn-sm" disabled style="opacity:0.4;cursor:not-allowed;">
+            Unavailable
+          </button>
+        {% endif %}
+
+        {% if session.get('role') == 'admin' %}
+        <button class="btn btn-outline btn-sm"
+                onclick="openEditMotor(
+                  {{ m.id }},
+                  '{{ m.brand }}','{{ m.model }}',{{ m.year }},'{{ m.type }}',
+                  '{{ m.plate }}',{{ m.rate_per_day }},'{{ m.status }}','{{ m.notes or '' }}'
+                )">Edit</button>
+
+        <button class="btn btn-danger btn-sm"
+                onclick="confirmDeleteMotor({{ m.id }})">Del</button>
+
+        <!-- Hidden delete form -->
+        <form id="deleteMotorForm-{{ m.id }}"
+              action="{{ url_for('motor_delete', motor_id=m.id) }}"
+              method="POST" style="display:none;">
+        </form>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+    <circle cx="6" cy="17" r="3"/><circle cx="18" cy="17" r="3"/>
+    <path d="M9 17h6M3 17H1v-4l5-5h7l3 4h2l2 2v3h-2"/>
+  </svg>
+  <p>No motors found. {% if session.get('role') == 'admin' %}Add one to get started!{% endif %}</p>
+</div>
+{% endif %}
+
+
+<!-- ── MOTOR MODAL ── -->
+<div class="modal-overlay" id="motorModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="motorModalTitle">ADD MOTOR</div>
+      <button class="modal-close" onclick="closeModal('motorModal')">&#x2715;</button>
+    </div>
+
+    <form id="motorForm" action="{{ url_for('motor_add') }}" method="POST">
+      <input type="hidden" id="motorIdField" name="_motor_id"/>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Brand *</label>
+          <input class="form-control" id="m-brand" name="brand" placeholder="Honda, Yamaha..." required/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Model *</label>
+          <input class="form-control" id="m-model" name="model" placeholder="Click 125i" required/>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Year</label>
+          <input class="form-control" id="m-year" name="year" type="number" placeholder="2023"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Type</label>
+          <select class="form-control" id="m-type" name="type">
+            <option>Scooter</option><option>Sport</option><option>Underbone</option>
+            <option>Cruiser</option><option>Trail</option><option>Electric</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Rate / Day (&#8369;) *</label>
+          <input class="form-control" id="m-rate" name="rate_per_day" type="number" placeholder="500" required/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Plate Number *</label>
+          <input class="form-control" id="m-plate" name="plate" placeholder="ABC 1234" required/>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Status</label>
+        <select class="form-control" id="m-status" name="status">
+          <option>Available</option>
+          <option>Rented</option>
+          <option>Under Maintenance</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Notes</label>
+        <textarea class="form-control" id="m-notes" name="notes" placeholder="Optional notes..."></textarea>
+      </div>
+    </form>
+
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('motorModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitMotorForm()">SAVE MOTOR</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ── RENTAL MODAL ── -->
+<div class="modal-overlay" id="rentalModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">BOOK RENTAL</div>
+      <button class="modal-close" onclick="closeModal('rentalModal')">&#x2715;</button>
+    </div>
+
+    <form id="rentalForm" action="{{ url_for('rental_add') }}" method="POST">
+
+      {% if session.get('role') == 'admin' %}
+      <div class="form-group">
+        <label class="form-label">Customer *</label>
+        <select class="form-control" id="r-customer" name="customer_id" required>
+          <option value="">Select customer...</option>
+          {% for c in customers %}
+          <option value="{{ c.id }}">{{ c.firstname }} {{ c.lastname }} — {{ c.email }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      {% endif %}
+
+      <div class="form-group">
+        <label class="form-label">Motor *</label>
+        <select class="form-control" id="r-motor" name="motor_id" required>
+          <option value="">Select motor...</option>
+          {% for m in available_motors %}
+          <option value="{{ m.id }}" data-rate="{{ m.rate_per_day }}">
+            {{ m.brand }} {{ m.model }} ({{ m.plate }}) — &#8369;{{ '{:,.0f}'.format(m.rate_per_day) }}/day
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Start Date *</label>
+          <input class="form-control" id="r-start" name="start_date" type="date" required/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">End Date *</label>
+          <input class="form-control" id="r-end" name="end_date" type="date" required/>
+        </div>
+      </div>
+
+      <div class="rental-total-box" id="rental-total">
+        Select motor and dates to calculate total.
+      </div>
+
+      <div class="form-group" style="margin-top:12px;">
+        <label class="form-label">Notes</label>
+        <textarea class="form-control" id="r-notes" name="notes" placeholder="Special requests..."></textarea>
+      </div>
+    </form>
+
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('rentalModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitRentalForm()">CONFIRM BOOKING</button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  {% if status_filter %}
+  document.getElementById('motor-status-filter').value = '{{ status_filter }}';
+  {% endif %}
+  {% if type_filter %}
+  document.getElementById('motor-type-filter').value = '{{ type_filter }}';
+  {% endif %}
+</script>
+{% endblock %}

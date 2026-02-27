@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+{% block title %}Rentals{% endblock %}
+{% block page_title %}RENTALS{% endblock %}
+
+{% block topbar_actions %}
+<button class="btn btn-primary" onclick="openRentalModal()">+ New Rental</button>
+{% endblock %}
+
+{% block content %}
+
+<!-- SUMMARY ROW -->
+<div class="summary-row">
+  {% set total    = rentals | length %}
+  {% set active   = rentals | selectattr('status', 'equalto', 'Rented')   | list | length %}
+  {% set pending  = rentals | selectattr('status', 'equalto', 'Pending')  | list | length %}
+  {% set overdue  = rentals | selectattr('status', 'equalto', 'Overdue')  | list | length %}
+  {% set returned = rentals | selectattr('status', 'equalto', 'Returned') | list | length %}
+
+  <div class="summary-card">
+    <div class="summary-label">Total</div>
+    <div class="summary-value">{{ total }}</div>
+  </div>
+  <div class="summary-card">
+    <div class="summary-label">Active</div>
+    <div class="summary-value" style="color:#1d4ed8;">{{ active }}</div>
+  </div>
+  <div class="summary-card">
+    <div class="summary-label">Pending</div>
+    <div class="summary-value" style="color:#a16207;">{{ pending }}</div>
+  </div>
+  <div class="summary-card">
+    <div class="summary-label">Overdue</div>
+    <div class="summary-value" style="color:#dc2626;">{{ overdue }}</div>
+  </div>
+  <div class="summary-card">
+    <div class="summary-label">Returned</div>
+    <div class="summary-value" style="color:#6d28d9;">{{ returned }}</div>
+  </div>
+</div>
+
+<!-- RENTALS TABLE -->
+<div class="panel">
+  <div class="panel-header">
+    <div class="panel-title">ALL RENTALS</div>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+      <input class="filter-input" id="rental-search"
+             placeholder="Search customer, motor..."
+             oninput="filterRentalRows()"
+             style="width:210px;"/>
+      <select class="filter-input" id="rental-status-filter" onchange="filterRentalRows()">
+        <option value="">All Status</option>
+        <option {% if status_filter=='Rented'   %}selected{% endif %}>Rented</option>
+        <option {% if status_filter=='Pending'  %}selected{% endif %}>Pending</option>
+        <option {% if status_filter=='Returned' %}selected{% endif %}>Returned</option>
+        <option {% if status_filter=='Overdue'  %}selected{% endif %}>Overdue</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Customer</th>
+          <th>Motor</th>
+          <th>Plate</th>
+          <th>Start</th>
+          <th>End</th>
+          <th>Contact</th>
+          <th>Status</th>
+          <th>Total</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in rentals %}
+        <tr data-customer="{{ r.customer }}" data-motor="{{ r.motor }}" data-status="{{ r.status }}">
+          <td><strong style="color:var(--muted2);">#{{ r.id }}</strong></td>
+          <td><strong>{{ r.customer }}</strong></td>
+          <td>{{ r.motor }}</td>
+          <td style="color:var(--muted);font-size:0.8rem;">{{ r.plate }}</td>
+          <td style="color:var(--muted);font-size:0.8rem;">{{ r.start_date }}</td>
+          <td style="color:var(--muted);font-size:0.8rem;">{{ r.end_date }}</td>
+          <td style="font-size:0.8rem;">{{ r.phone or '—' }}</td>
+          <td>
+            <span class="status status-{{ r.status.lower() }}">{{ r.status }}</span>
+          </td>
+          <td style="color:var(--accent);font-weight:700;">
+            &#8369;{{ '{:,.2f}'.format(r.total_cost) }}
+          </td>
+          <td style="white-space:nowrap;">
+            {% if session.get('role') == 'admin' %}
+
+              {% if r.status == 'Pending' %}
+              <button class="btn btn-success btn-sm"
+                      onclick="confirmApproveRental({{ r.id }})">Approve</button>
+              {% endif %}
+
+              {% if r.status in ['Rented', 'Overdue'] %}
+              <button class="btn btn-outline btn-sm"
+                      onclick="confirmReturnRental({{ r.id }})">Return</button>
+              {% endif %}
+
+              <button class="btn btn-danger btn-sm"
+                      onclick="confirmDeleteRental({{ r.id }})">Del</button>
+
+              <!-- Hidden forms -->
+              <form id="approveRentalForm-{{ r.id }}"
+                    action="{{ url_for('rental_approve', rental_id=r.id) }}"
+                    method="POST" style="display:none;"></form>
+              <form id="returnRentalForm-{{ r.id }}"
+                    action="{{ url_for('rental_return', rental_id=r.id) }}"
+                    method="POST" style="display:none;"></form>
+              <form id="deleteRentalForm-{{ r.id }}"
+                    action="{{ url_for('rental_delete', rental_id=r.id) }}"
+                    method="POST" style="display:none;"></form>
+
+            {% else %}
+              <span style="color:var(--muted);font-size:0.78rem;">{{ r.status }}</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="10" style="text-align:center;color:var(--muted);padding:32px;">
+            No rentals found.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+
+<!-- ── RENTAL MODAL ── -->
+<div class="modal-overlay" id="rentalModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">NEW RENTAL</div>
+      <button class="modal-close" onclick="closeModal('rentalModal')">&#x2715;</button>
+    </div>
+
+    <form id="rentalForm" action="{{ url_for('rental_add') }}" method="POST">
+
+      {% if session.get('role') == 'admin' %}
+      <div class="form-group">
+        <label class="form-label">Customer *</label>
+        <select class="form-control" id="r-customer" name="customer_id" required>
+          <option value="">Select customer...</option>
+          {% for c in customers %}
+          <option value="{{ c.id }}">{{ c.firstname }} {{ c.lastname }} — {{ c.email }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      {% endif %}
+
+      <div class="form-group">
+        <label class="form-label">Motor *</label>
+        <select class="form-control" id="r-motor" name="motor_id" required>
+          <option value="">Select motor...</option>
+          {% for m in available_motors %}
+          <option value="{{ m.id }}" data-rate="{{ m.rate_per_day }}">
+            {{ m.brand }} {{ m.model }} ({{ m.plate }}) — &#8369;{{ '{:,.0f}'.format(m.rate_per_day) }}/day
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Start Date *</label>
+          <input class="form-control" id="r-start" name="start_date" type="date" required/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">End Date *</label>
+          <input class="form-control" id="r-end" name="end_date" type="date" required/>
+        </div>
+      </div>
+
+      <div class="rental-total-box" id="rental-total">
+        Select motor and dates to calculate total.
+      </div>
+
+      <div class="form-group" style="margin-top:12px;">
+        <label class="form-label">Notes</label>
+        <textarea class="form-control" id="r-notes" name="notes"
+                  placeholder="Special requests..."></textarea>
+      </div>
+    </form>
+
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('rentalModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitRentalForm()">CONFIRM BOOKING</button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
