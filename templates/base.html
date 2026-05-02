@@ -4,6 +4,8 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>MotoRent — {% block title %}{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"/>
   {% block head %}{% endblock %}
 </head>
@@ -15,6 +17,16 @@
       <h2>Moto<span>Rent</span></h2>
       <small>Management System</small>
     </div>
+
+    {% if session.get('branch_name') %}
+    <div class="branch-pill">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;flex-shrink:0;">
+        <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+        <polyline points="9 22 9 12 15 12 15 22"/>
+      </svg>
+      {{ session.get('branch_name') }}
+    </div>
+    {% endif %}
 
     <nav class="sidebar-nav">
       <div class="nav-label">Main</div>
@@ -34,7 +46,7 @@
           <circle cx="6" cy="17" r="3"/><circle cx="18" cy="17" r="3"/>
           <path d="M9 17h6M3 17H1v-4l5-5h7l3 4h2l2 2v3h-2"/>
         </svg>
-        Motors 
+        Motorcycles
       </a>
 
       <a href="{{ url_for('rentals') }}"
@@ -44,6 +56,37 @@
                    M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2M9 12h6M9 16h4"/>
         </svg>
         Rentals
+      </a>
+
+      <div class="nav-label">Commerce</div>
+
+      <a href="{{ url_for('sales') }}"
+         class="nav-link {% if request.endpoint == 'sales' %}active{% endif %}">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
+          <line x1="3" y1="6" x2="21" y2="6"/>
+          <path d="M16 10a4 4 0 01-8 0"/>
+        </svg>
+        Sales
+      </a>
+
+      <a href="{{ url_for('parts') }}"
+         class="nav-link {% if request.endpoint == 'parts' %}active{% endif %}">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/>
+          <path d="M12 2v2M12 20v2M2 12h2M20 12h2"/>
+        </svg>
+        Parts Shop
+      </a>
+
+      <a href="{{ url_for('installments') }}"
+         class="nav-link {% if request.endpoint == 'installments' %}active{% endif %}">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
+          <line x1="1" y1="10" x2="23" y2="10"/>
+        </svg>
+        Installments
       </a>
 
       <div class="nav-label">Admin</div>
@@ -57,6 +100,18 @@
         </svg>
         Customers
       </a>
+
+      {% if session.get('role') == 'superadmin' %}
+      <a href="{{ url_for('branches') }}"
+         class="nav-link {% if request.endpoint == 'branches' %}active{% endif %}">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+          <polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+        Branches
+        <span class="nav-badge super">Super</span>
+      </a>
+      {% endif %}
 
       <div class="nav-label">Account</div>
 
@@ -75,7 +130,10 @@
         <div class="user-avatar">{{ session.get('user_name', 'U')[0].upper() }}</div>
         <div class="user-info">
           <p>{{ session.get('user_name', 'Admin') }}</p>
-          <small>Administrator</small>
+          <small>
+            {% if session.get('role') == 'superadmin' %}Super Admin
+            {% else %}Administrator{% endif %}
+          </small>
         </div>
       </div>
       <a href="{{ url_for('logout') }}" class="btn-logout">⏻ &nbsp;Logout</a>
@@ -84,18 +142,22 @@
 
   <!-- MAIN -->
   <div class="main-content">
-    <!-- TOPBAR -->
     <header class="topbar">
       <div style="display:flex;align-items:center;gap:14px;">
         <div class="topbar-title">{% block page_title %}{% endblock %}</div>
-        <span class="role-badge">Admin</span>
+        <span class="role-badge">
+          {% if session.get('role') == 'superadmin' %}Super Admin
+          {% else %}Admin{% endif %}
+        </span>
+        {% if session.get('branch_name') %}
+        <span class="branch-badge">{{ session.get('branch_name') }}</span>
+        {% endif %}
       </div>
       <div class="topbar-right">
         {% block topbar_actions %}{% endblock %}
       </div>
     </header>
 
-    <!-- FLASH MESSAGES -->
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         <div style="padding:12px 28px 0;">
@@ -106,7 +168,6 @@
       {% endif %}
     {% endwith %}
 
-    <!-- PAGE CONTENT -->
     <div class="page-body">
       {% block content %}{% endblock %}
     </div>

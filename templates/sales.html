@@ -1,0 +1,269 @@
+{% extends "base.html" %}
+{% block title %}Sales{% endblock %}
+{% block page_title %}SALES{% endblock %}
+
+{% block topbar_actions %}
+  <button class="btn btn-primary" onclick="openModal('saleModal')">+ Record Sale</button>
+{% endblock %}
+
+{% block content %}
+
+<!-- SUMMARY ROW -->
+<div class="summary-row">
+  {% set total_sales    = sales | length %}
+  {% set pending_sales  = sales | selectattr('status', 'equalto', 'Pending')   | list | length %}
+  {% set confirmed      = sales | selectattr('status', 'equalto', 'Confirmed') | list | length %}
+  {% set total_revenue  = sales | sum(attribute='total_price') %}
+
+  <div class="summary-card">
+    <div class="summary-label">Total Sales</div>
+    <div class="summary-value">{{ total_sales }}</div>
+  </div>
+  <div class="summary-card">
+    <div class="summary-label">Pending</div>
+    <div class="summary-value" style="color:#a16207;">{{ pending_sales }}</div>
+  </div>
+  <div class="summary-card">
+    <div class="summary-label">Confirmed</div>
+    <div class="summary-value" style="color:#16a34a;">{{ confirmed }}</div>
+  </div>
+  <div class="summary-card">
+    <div class="summary-label">Total Revenue</div>
+    <div class="summary-value" style="font-size:1.4rem;">&#8369;{{ '{:,.0f}'.format(total_revenue) }}</div>
+  </div>
+</div>
+
+<!-- SALES TABLE -->
+<div class="panel">
+  <div class="panel-header">
+    <div class="panel-title">MOTORCYCLE SALES</div>
+    <div style="display:flex;gap:10px;align-items:center;">
+      <input class="filter-input" id="sale-search"
+             placeholder="Search customer, motor..."
+             oninput="filterSaleRows()" style="width:220px;"/>
+      <select class="filter-input" id="sale-status-filter" onchange="filterSaleRows()">
+        <option value="">All Status</option>
+        <option>Pending</option>
+        <option>Confirmed</option>
+        <option>Cancelled</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Customer</th>
+          <th>Motor</th>
+          <th>Plate</th>
+          <th>Sale Price</th>
+          <th>Payment</th>
+          <th>Date</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="sales-tbody">
+        {% for s in sales %}
+        <tr data-customer="{{ s.customer }}" data-motor="{{ s.motor }}" data-status="{{ s.status }}">
+          <td><strong style="color:var(--muted2);">#{{ s.id }}</strong></td>
+          <td><strong>{{ s.customer }}</strong></td>
+          <td>{{ s.motor }}</td>
+          <td style="color:var(--muted);font-size:0.8rem;">{{ s.plate }}</td>
+          <td style="font-weight:700;color:var(--accent);">&#8369;{{ '{:,.2f}'.format(s.total_price) }}</td>
+          <td>
+            <span class="status status-{{ s.payment_type.lower() if s.payment_type else 'cash' }}">
+              {{ s.payment_type or 'Cash' }}
+            </span>
+          </td>
+          <td style="font-size:0.8rem;color:var(--muted);">{{ s.sale_date }}</td>
+          <td>
+            <span class="status status-{{ s.status.lower() }}">{{ s.status }}</span>
+          </td>
+          <td style="white-space:nowrap;">
+            {% if s.status == 'Pending' %}
+            <button class="btn btn-success btn-sm"
+                    onclick="confirmSaleApprove({{ s.id }})">Confirm</button>
+            <form id="approveSaleForm-{{ s.id }}"
+                  action="{{ url_for('sale_confirm', sale_id=s.id) }}"
+                  method="POST" style="display:none;"></form>
+            {% endif %}
+            <button class="btn btn-danger btn-sm"
+                    onclick="confirmSaleDelete({{ s.id }})">Del</button>
+            <form id="deleteSaleForm-{{ s.id }}"
+                  action="{{ url_for('sale_delete', sale_id=s.id) }}"
+                  method="POST" style="display:none;"></form>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="9" style="text-align:center;color:var(--muted);padding:32px;">
+            No sales recorded yet.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+
+<!-- ── SALE MODAL ── -->
+<div class="modal-overlay" id="saleModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">RECORD SALE</div>
+      <button class="modal-close" onclick="closeModal('saleModal')">&#x2715;</button>
+    </div>
+
+    <form id="saleForm" action="{{ url_for('sale_add') }}" method="POST">
+
+      <div class="form-group">
+        <label class="form-label">Customer *</label>
+        <select class="form-control" name="customer_id" required>
+          <option value="">Select customer...</option>
+          {% for c in customers %}
+          <option value="{{ c.id }}">{{ c.firstname }} {{ c.lastname }} — {{ c.email }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Motor *</label>
+        <select class="form-control" id="sale-motor" name="motor_id" required onchange="updateSalePrice()">
+          <option value="">Select motor...</option>
+          {% for m in available_motors %}
+          <option value="{{ m.id }}" data-price="{{ m.selling_price or 0 }}">
+            {{ m.brand }} {{ m.model }} ({{ m.plate }})
+            {% if m.selling_price %} — ₱{{ '{:,.0f}'.format(m.selling_price) }}{% endif %}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Sale Price (₱) *</label>
+          <input class="form-control" id="sale-price" type="number" name="total_price"
+                 placeholder="0.00" step="0.01" required/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Payment Type *</label>
+          <select class="form-control" name="payment_type" id="sale-payment-type"
+                  onchange="toggleInstallmentOption()">
+            <option value="Cash">Cash</option>
+            <option value="Installment">Installment</option>
+            <option value="Bank Transfer">Bank Transfer</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Installment sub-options (shown when Installment selected) -->
+      <div id="installment-options" style="display:none;background:var(--surface3);padding:14px;border-radius:10px;margin-bottom:12px;">
+        <div style="font-size:0.75rem;font-weight:700;color:var(--accent);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px;">
+          Installment Details
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Down Payment (₱) *</label>
+            <input class="form-control" type="number" name="down_payment"
+                   placeholder="5000" step="0.01" id="sale-down"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Term (months) *</label>
+            <select class="form-control" name="installment_months" id="sale-months"
+                    onchange="calcMonthlyPayment()">
+              <option value="6">6 months</option>
+              <option value="12">12 months</option>
+              <option value="18">18 months</option>
+              <option value="24">24 months</option>
+              <option value="36">36 months</option>
+            </select>
+          </div>
+        </div>
+        <div id="monthly-preview" style="font-size:0.82rem;color:var(--muted);padding:8px 10px;background:var(--surface2);border-radius:6px;"></div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Sale Date *</label>
+        <input class="form-control" type="date" name="sale_date" id="sale-date" required/>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Notes</label>
+        <textarea class="form-control" name="notes" placeholder="Optional notes..."></textarea>
+      </div>
+    </form>
+
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('saleModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitSaleForm()">RECORD SALE</button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Set today's date as default
+  document.getElementById('sale-date').value = new Date().toISOString().split('T')[0];
+
+  function updateSalePrice() {
+    const sel = document.getElementById('sale-motor');
+    const opt = sel.selectedOptions[0];
+    if (opt) {
+      const price = opt.getAttribute('data-price');
+      if (price && price > 0) document.getElementById('sale-price').value = price;
+    }
+    calcMonthlyPayment();
+  }
+
+  function toggleInstallmentOption() {
+    const val = document.getElementById('sale-payment-type').value;
+    document.getElementById('installment-options').style.display = val === 'Installment' ? 'block' : 'none';
+  }
+
+  function calcMonthlyPayment() {
+    const price   = parseFloat(document.getElementById('sale-price').value) || 0;
+    const down    = parseFloat(document.getElementById('sale-down')?.value)  || 0;
+    const months  = parseInt(document.getElementById('sale-months')?.value)  || 12;
+    const balance = price - down;
+    if (balance <= 0 || months <= 0) return;
+    const monthly = balance / months;
+    document.getElementById('monthly-preview').textContent =
+      `Balance: ₱${balance.toLocaleString()} ÷ ${months} months = ₱${monthly.toLocaleString('en-PH', {minimumFractionDigits:2, maximumFractionDigits:2})} / month`;
+  }
+
+  document.getElementById('sale-price')?.addEventListener('input', calcMonthlyPayment);
+  document.getElementById('sale-down')?.addEventListener('input', calcMonthlyPayment);
+
+  function submitSaleForm() {
+    document.getElementById('saleForm').submit();
+  }
+
+  function confirmSaleApprove(id) {
+    if (confirm('Confirm this sale? The motor will be marked as Sold.')) {
+      document.getElementById('approveSaleForm-' + id).submit();
+    }
+  }
+
+  function confirmSaleDelete(id) {
+    if (confirm('Delete this sale record?')) {
+      document.getElementById('deleteSaleForm-' + id).submit();
+    }
+  }
+
+  function filterSaleRows() {
+    const search = (document.getElementById('sale-search')?.value || '').toLowerCase();
+    const status = document.getElementById('sale-status-filter')?.value || '';
+    document.querySelectorAll('#sales-tbody tr[data-customer]').forEach(row => {
+      const text = `${row.dataset.customer} ${row.dataset.motor}`.toLowerCase();
+      const match = text.includes(search) && (!status || row.dataset.status === status);
+      row.style.display = match ? '' : 'none';
+    });
+  }
+</script>
+{% endblock %}

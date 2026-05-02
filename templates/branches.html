@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+{% block title %}Branches{% endblock %}
+{% block page_title %}BRANCHES{% endblock %}
+
+{% block topbar_actions %}
+  <button class="btn btn-primary" onclick="openModal('branchModal')">+ Add Branch</button>
+{% endblock %}
+
+{% block content %}
+
+<!-- INFO BANNER -->
+<div style="background:linear-gradient(135deg,rgba(8,131,149,0.1),rgba(14,165,233,0.08));
+            border:1px solid rgba(8,131,149,0.25);border-radius:12px;
+            padding:16px 20px;margin-bottom:24px;
+            display:flex;align-items:flex-start;gap:14px;">
+  <div style="font-size:1.4rem;">🏢</div>
+  <div>
+    <div style="font-weight:700;color:var(--text1);margin-bottom:4px;">Multi-Branch System</div>
+    <div style="font-size:0.83rem;color:var(--muted);line-height:1.6;">
+      Each branch has its own motorcycle inventory, staff (admins), rentals, and sales records.
+      As <strong>Super Admin</strong>, you can view all branches and their data.
+      Branch admins can only see their own branch.
+    </div>
+  </div>
+</div>
+
+<!-- BRANCH CARDS -->
+{% if branches %}
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;margin-bottom:24px;">
+  {% for b in branches %}
+  <div style="background:var(--surface2);border-radius:14px;border:1px solid var(--border);
+              padding:20px;transition:box-shadow 0.2s;"
+       onmouseover="this.style.boxShadow='0 4px 20px rgba(8,131,149,0.15)'"
+       onmouseout="this.style.boxShadow='none'">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;">
+      <div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:1.2rem;letter-spacing:1px;color:var(--text1);">
+          {{ b.name }}
+        </div>
+        <div style="font-size:0.78rem;color:var(--muted);margin-top:2px;">{{ b.address }}</div>
+      </div>
+      <span class="status {% if b.active %}status-available{% else %}status-under-maintenance{% endif %}">
+        {{ 'Active' if b.active else 'Inactive' }}
+      </span>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+      <div style="background:var(--surface3);border-radius:8px;padding:10px;text-align:center;">
+        <div style="font-size:1.3rem;font-weight:700;color:var(--accent);">{{ b.motor_count or 0 }}</div>
+        <div style="font-size:0.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;">Motors</div>
+      </div>
+      <div style="background:var(--surface3);border-radius:8px;padding:10px;text-align:center;">
+        <div style="font-size:1.3rem;font-weight:700;color:#16a34a;">{{ b.admin_count or 0 }}</div>
+        <div style="font-size:0.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;">Admins</div>
+      </div>
+    </div>
+
+    <div style="font-size:0.78rem;color:var(--muted);margin-bottom:12px;">
+      📞 {{ b.phone or '—' }} &nbsp;|&nbsp; 📧 {{ b.email or '—' }}
+    </div>
+
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-outline btn-sm" style="flex:1;"
+              onclick="viewBranch({{ b.id }})">View Data</button>
+      <button class="btn btn-outline btn-sm"
+              onclick="openEditBranch({{ b.id }}, '{{ b.name }}', '{{ b.address }}', '{{ b.phone or '' }}', '{{ b.email or '' }}')">
+        Edit
+      </button>
+      <button class="btn btn-danger btn-sm"
+              onclick="confirmDeleteBranch({{ b.id }})">Del</button>
+      <form id="deleteBranchForm-{{ b.id }}"
+            action="{{ url_for('branch_delete', branch_id=b.id) }}"
+            method="POST" style="display:none;"></form>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+    <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+    <polyline points="9 22 9 12 15 12 15 22"/>
+  </svg>
+  <h3>No branches yet</h3>
+  <p>Add your first branch to get started with multi-branch management.</p>
+</div>
+{% endif %}
+
+<!-- COMPARISON TABLE -->
+{% if branches | length > 1 %}
+<div class="panel">
+  <div class="panel-header">
+    <div class="panel-title">BRANCH COMPARISON</div>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Branch</th>
+          <th>Motors</th>
+          <th>Active Rentals</th>
+          <th>Sales</th>
+          <th>Revenue</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for b in branches %}
+        <tr>
+          <td><strong>{{ b.name }}</strong><div style="font-size:0.75rem;color:var(--muted);">{{ b.address }}</div></td>
+          <td>{{ b.motor_count or 0 }}</td>
+          <td style="color:var(--accent);font-weight:600;">{{ b.active_rentals or 0 }}</td>
+          <td>{{ b.sale_count or 0 }}</td>
+          <td style="font-weight:700;color:#16a34a;">&#8369;{{ '{:,.0f}'.format(b.revenue or 0) }}</td>
+          <td><span class="status {% if b.active %}status-available{% else %}status-under-maintenance{% endif %}">
+            {{ 'Active' if b.active else 'Inactive' }}
+          </span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+
+<!-- ── BRANCH MODAL ── -->
+<div class="modal-overlay" id="branchModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="branchModalTitle">ADD BRANCH</div>
+      <button class="modal-close" onclick="closeModal('branchModal')">&#x2715;</button>
+    </div>
+
+    <form id="branchForm" action="{{ url_for('branch_add') }}" method="POST">
+      <input type="hidden" id="branch-id-field" name="_branch_id"/>
+
+      <div class="form-group">
+        <label class="form-label">Branch Name *</label>
+        <input class="form-control" id="b-name" name="name"
+               placeholder="e.g. MotoRent Quezon City" required/>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Address *</label>
+        <textarea class="form-control" id="b-address" name="address" rows="2"
+                  placeholder="Full address of the branch" required></textarea>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Phone</label>
+          <input class="form-control" id="b-phone" name="phone" placeholder="09XX XXX XXXX"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input class="form-control" id="b-email" name="email" type="email"
+                 placeholder="branch@motorent.com"/>
+        </div>
+      </div>
+    </form>
+
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('branchModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitBranchForm()">SAVE BRANCH</button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function openEditBranch(id, name, address, phone, email) {
+    document.getElementById('branchModalTitle').textContent = 'EDIT BRANCH';
+    document.getElementById('branch-id-field').value = id;
+    document.getElementById('b-name').value    = name;
+    document.getElementById('b-address').value = address;
+    document.getElementById('b-phone').value   = phone;
+    document.getElementById('b-email').value   = email;
+    openModal('branchModal');
+  }
+
+  function submitBranchForm() {
+    const id = document.getElementById('branch-id-field').value;
+    const form = document.getElementById('branchForm');
+    form.action = id ? `/branches/edit/${id}` : '{{ url_for("branch_add") }}';
+    form.submit();
+  }
+
+  function confirmDeleteBranch(id) {
+    if (confirm('Delete this branch? All related data will be unlinked.')) {
+      document.getElementById('deleteBranchForm-' + id).submit();
+    }
+  }
+
+  function viewBranch(id) {
+    window.location.href = `/branches/${id}`;
+  }
+</script>
+{% endblock %}

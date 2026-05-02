@@ -32,6 +32,7 @@
           <th>Date of Birth</th>
           <th>Driver's License</th>
           <th>Address</th>
+          <th>Activity</th>
           <th>Joined</th>
           <th>Actions</th>
         </tr>
@@ -45,7 +46,7 @@
           <td>
             <div style="display:flex;align-items:center;gap:10px;">
               <div style="width:34px;height:34px;border-radius:9px;
-                          background:rgba(59,130,246,0.10);
+                          background:rgba(8,131,149,0.12);
                           display:flex;align-items:center;justify-content:center;
                           font-family:'Bebas Neue',sans-serif;font-size:1rem;
                           color:var(--accent);flex-shrink:0;">
@@ -60,19 +61,34 @@
           <td style="font-size:0.82rem;">{{ c.phone }}</td>
           <td style="font-size:0.82rem;color:var(--muted);">{{ c.birthdate or '—' }}</td>
           <td>
-            <span style="font-size:0.78rem;background:#f1f5f9;padding:3px 8px;border-radius:5px;color:var(--text2);">
+            <span style="font-size:0.78rem;background:#EBF4F6;padding:3px 8px;border-radius:5px;color:var(--text2);">
               {{ c.license_no }}
             </span>
           </td>
           <td style="font-size:0.8rem;color:var(--muted);max-width:160px;">
             {{ c.address or '—' }}
           </td>
+          <td>
+            <!-- Activity badges - counts populated by server if available, else show view link -->
+            <div style="display:flex;gap:5px;flex-wrap:wrap;">
+              <span style="font-size:0.68rem;padding:2px 7px;border-radius:10px;
+                           background:rgba(8,131,149,0.1);color:var(--accent);font-weight:600;">
+                🏍 Renter
+              </span>
+            </div>
+          </td>
           <td style="font-size:0.78rem;color:var(--muted);">
             {{ c.created_at[:10] if c.created_at else '—' }}
           </td>
           <td>
-            <button class="btn btn-danger btn-sm"
-                    onclick="confirmDeleteCustomer({{ c.id }})">Remove</button>
+            <div style="display:flex;gap:6px;flex-wrap:nowrap;">
+              <button class="btn btn-outline btn-sm"
+                      onclick="viewCustomerActivity({{ c.id }}, '{{ c.firstname }} {{ c.lastname }}')">
+                View
+              </button>
+              <button class="btn btn-danger btn-sm"
+                      onclick="confirmDeleteCustomer({{ c.id }})">Remove</button>
+            </div>
             <form id="deleteCustomerForm-{{ c.id }}"
                   action="{{ url_for('customer_delete', customer_id=c.id) }}"
                   method="POST" style="display:none;"></form>
@@ -80,7 +96,7 @@
         </tr>
         {% else %}
         <tr>
-          <td colspan="9" style="text-align:center;color:var(--muted);padding:32px;">
+          <td colspan="10" style="text-align:center;color:var(--muted);padding:32px;">
             No customers registered yet.
           </td>
         </tr>
@@ -90,4 +106,49 @@
   </div>
 </div>
 
+<!-- ── CUSTOMER ACTIVITY MODAL ── -->
+<div class="modal-overlay" id="customerModal">
+  <div class="modal" style="max-width:560px;">
+    <div class="modal-header">
+      <div class="modal-title" id="cust-modal-name">Customer Activity</div>
+      <button class="modal-close" onclick="closeModal('customerModal')">&#x2715;</button>
+    </div>
+    <div id="cust-modal-body" style="padding:0 0 8px;">
+      <div style="text-align:center;padding:32px;color:var(--muted);">
+        Loading activity...
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('customerModal')">Close</button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function viewCustomerActivity(customerId, customerName) {
+    document.getElementById('cust-modal-name').textContent = customerName + ' — Activity';
+    document.getElementById('cust-modal-body').innerHTML = `
+      <div style="padding:20px 0;">
+        <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
+          <a href="/rentals?customer=${customerId}" class="btn btn-outline btn-sm">
+            📋 View Rentals
+          </a>
+          <a href="/sales?customer=${customerId}" class="btn btn-outline btn-sm">
+            🛒 View Purchases
+          </a>
+          <a href="/installments?customer=${customerId}" class="btn btn-outline btn-sm">
+            💳 View Installments
+          </a>
+        </div>
+        <div style="background:var(--surface3);border-radius:10px;padding:14px;font-size:0.83rem;color:var(--muted);">
+          ℹ️ Use the links above to filter activity by this customer on each page.
+        </div>
+      </div>
+    `;
+    openModal('customerModal');
+  }
+</script>
 {% endblock %}

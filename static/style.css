@@ -685,3 +685,98 @@ tr:hover td { background: var(--surface3); }
   .portal-tabs { padding: 0 16px; }
   .portal-content { padding: 20px 16px; }
 }
+
+
+/* ============================================================
+   MotoRent — ADDITIONS FOR NEW FEATURES
+   Add these to the END of your existing style.css
+   ============================================================ */
+
+/* ── NAV BADGES ─────────────────────────────────────────── */
+.nav-badge {
+  display:inline-block;
+  font-size:0.58rem;font-weight:700;letter-spacing:0.5px;
+  padding:2px 6px;border-radius:10px;margin-left:auto;
+  text-transform:uppercase;
+}
+.nav-badge.new {
+  background:rgba(8,131,149,0.15);color:#088395;
+  border:1px solid rgba(8,131,149,0.3);
+}
+.nav-badge.super {
+  background:rgba(124,58,237,0.12);color:#7c3aed;
+  border:1px solid rgba(124,58,237,0.25);
+}
+
+/* ── BRANCH PILL (sidebar) ───────────────────────────────── */
+.branch-pill {
+  display:flex;align-items:center;gap:6px;
+  background:rgba(8,131,149,0.1);
+  border:1px solid rgba(8,131,149,0.25);
+  border-radius:20px;padding:4px 10px;
+  font-size:0.72rem;font-weight:600;color:#088395;
+  margin:0 16px 12px;letter-spacing:0.3px;
+  text-overflow:ellipsis;overflow:hidden;white-space:nowrap;
+}
+
+/* ── BRANCH BADGE (topbar) ───────────────────────────────── */
+.branch-badge {
+  display:inline-block;
+  font-size:0.7rem;font-weight:600;letter-spacing:0.5px;
+  padding:3px 10px;border-radius:20px;
+  background:rgba(8,131,149,0.1);color:#088395;
+  border:1px solid rgba(8,131,149,0.2);
+}
+
+/* ── PARTS TABS ──────────────────────────────────────────── */
+.parts-tabs {
+  display:flex;gap:0;background:var(--surface3);
+  border-radius:10px;padding:4px;
+  margin-bottom:20px;width:fit-content;
+}
+.parts-tab {
+  padding:7px 20px;border:none;background:transparent;cursor:pointer;
+  font-family:'DM Sans',sans-serif;font-size:0.82rem;font-weight:600;
+  color:var(--muted);border-radius:7px;transition:all 0.2s;
+  white-space:nowrap;
+}
+.parts-tab.active {
+  background:var(--surface2);color:var(--text1);
+  box-shadow:0 1px 4px rgba(0,0,0,0.1);
+}
+
+/* ── TAGS ────────────────────────────────────────────────── */
+.tag {
+  display:inline-block;
+  font-size:0.7rem;font-weight:600;letter-spacing:0.3px;
+  padding:2px 8px;border-radius:5px;
+  background:var(--surface3);color:var(--muted);
+  border:1px solid var(--border);
+}
+
+/* ── STATUS COLORS (extended) ────────────────────────────── */
+.status-cash        {background:#f0fdf4;color:#166534;}
+.status-installment {background:#eff6ff;color:#1e40af;}
+.status-bank-transfer{background:#faf5ff;color:#6b21a8;}
+.status-confirmed   {background:#f0fdf4;color:#166534;}
+.status-processing  {background:#eff6ff;color:#1e40af;}
+.status-completed   {background:#f0fdf4;color:#166534;}
+.status-cancelled   {background:#fef2f2;color:#991b1b;}
+.status-paid-off    {background:#f0fdf4;color:#166534;}
+.status-for-sale    {background:#ecfeff;color:#0891b2;}
+.status-sold        {background:#1e1b4b;color:#a5b4fc;}
+
+/* ── PORTAL TAB NEW BADGE ────────────────────────────────── */
+.tab-new-badge {
+  display:inline-block;
+  font-size:0.58rem;font-weight:700;letter-spacing:0.5px;
+  padding:1px 6px;border-radius:10px;margin-left:5px;
+  background:rgba(8,131,149,0.15);color:#088395;
+  border:1px solid rgba(8,131,149,0.3);
+  vertical-align:middle;
+}
+
+/* ── STATUS (for sale) ───────────────────────────────────── */
+.status-for-sale {
+  background:#ecfeff;color:#0891b2;
+}

@@ -3,7 +3,7 @@
 {% block page_title %}MOTORS{% endblock %}
 
 {% block topbar_actions %}
-  {% if session.get('role') == 'admin' %}
+  {% if session.get('role') in ['admin', 'superadmin'] %}
   <button class="btn btn-primary" onclick="openAddMotor()">+ Add Motor</button>
   {% endif %}
 {% endblock %}
@@ -16,8 +16,7 @@
     <label class="filter-label">Search</label>
     <input class="filter-input" id="motor-search" type="text"
            placeholder="Brand, model, plate..."
-           oninput="filterMotorCards()"
-           style="min-width:220px;"/>
+           oninput="filterMotorCards()" style="min-width:220px;"/>
   </div>
   <div class="filter-group">
     <label class="filter-label">Status</label>
@@ -26,6 +25,7 @@
       <option {% if status_filter=='Available' %}selected{% endif %}>Available</option>
       <option {% if status_filter=='Rented' %}selected{% endif %}>Rented</option>
       <option {% if status_filter=='Under Maintenance' %}selected{% endif %}>Under Maintenance</option>
+      <option {% if status_filter=='Sold' %}selected{% endif %}>Sold</option>
     </select>
   </div>
   <div class="filter-group">
@@ -40,54 +40,65 @@
       <option {% if type_filter=='Electric' %}selected{% endif %}>Electric</option>
     </select>
   </div>
+  <div class="filter-group">
+    <label class="filter-label">For Sale</label>
+    <select class="filter-input" id="motor-forsale-filter" onchange="filterMotorCards()">
+      <option value="">All</option>
+      <option value="1">For Sale</option>
+      <option value="0">Rent Only</option>
+    </select>
+  </div>
 </div>
 
 <!-- MOTOR CARDS -->
 {% if motors %}
 <div class="motor-grid">
   {% for m in motors %}
-
-  {# ── Build the image filename from brand + model ── #}
   {% set img_name = m.brand ~ ' ' ~ m.model %}
-
   <div class="motor-card"
        data-brand="{{ m.brand }}"
        data-model="{{ m.model }}"
        data-plate="{{ m.plate }}"
        data-status="{{ m.status }}"
-       data-type="{{ m.type }}">
+       data-type="{{ m.type }}"
+       data-forsale="{{ m.for_sale or 0 }}">
 
     <div class="motor-img">
-      <img
-        src="{{ url_for('static', filename='images/' ~ img_name ~ '.png') }}"
-        alt="{{ m.brand }} {{ m.model }}"
-        onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
-      />
-      <!-- Fallback SVG shown only if image fails to load -->
+      <img src="{{ url_for('static', filename='images/' ~ img_name ~ '.png') }}"
+           alt="{{ m.brand }} {{ m.model }}"
+           onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"/>
       <div class="motor-img-fallback" style="display:none; width:100%; height:100%; align-items:center; justify-content:center;">
         <svg viewBox="0 0 200 100" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:110px;">
-          <circle cx="45"  cy="72" r="24" stroke="#088395" stroke-width="4"/>
-          <circle cx="45"  cy="72" r="12" stroke="#088395" stroke-width="2"/>
+          <circle cx="45" cy="72" r="24" stroke="#088395" stroke-width="4"/>
+          <circle cx="45" cy="72" r="12" stroke="#088395" stroke-width="2"/>
           <circle cx="155" cy="72" r="24" stroke="#088395" stroke-width="4"/>
           <circle cx="155" cy="72" r="12" stroke="#088395" stroke-width="2"/>
           <path d="M69 72 L88 45 L126 40 L148 52 L155 72" stroke="#088395" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
           <path d="M88 45 L100 30 L120 32 L120 40" stroke="#088395" stroke-width="3" stroke-linecap="round"/>
           <rect x="90" y="50" width="32" height="20" rx="3" stroke="#088395" stroke-width="3"/>
           <path d="M122 65 L140 70" stroke="#088395" stroke-width="2.5" stroke-linecap="round"/>
-          <path d="M69 65 L55 71"   stroke="#088395" stroke-width="3"   stroke-linecap="round"/>
-          <path d="M73 68 L59 71"   stroke="#088395" stroke-width="3"   stroke-linecap="round"/>
-          <path d="M87 45 L82 36 L92 32" stroke="#088395" stroke-width="2.5" stroke-linecap="round"/>
+          <path d="M69 65 L55 71" stroke="#088395" stroke-width="3" stroke-linecap="round"/>
         </svg>
       </div>
       <div class="motor-img-badge">
         <span class="status status-{{ m.status.lower().replace(' ', '-') }}">{{ m.status }}</span>
       </div>
+      {% if m.for_sale %}
+      <div style="position:absolute;top:10px;left:10px;">
+        <span class="status status-for-sale" style="font-size:0.62rem;">For Sale</span>
+      </div>
+      {% endif %}
     </div>
 
     <div class="motor-body">
       <div class="motor-name">{{ m.brand }} {{ m.model }}</div>
       <div class="motor-meta">{{ m.year }} &middot; {{ m.type }} &middot; {{ m.plate }}</div>
       <div class="motor-price">&#8369;{{ '{:,.0f}'.format(m.rate_per_day) }}<span>/day</span></div>
+      {% if m.selling_price and m.for_sale %}
+      <div style="font-size:0.78rem;color:#7c3aed;font-weight:600;margin-top:3px;">
+        Sale: &#8369;{{ '{:,.0f}'.format(m.selling_price) }}
+      </div>
+      {% endif %}
       {% if m.notes %}
       <div style="font-size:0.73rem;color:var(--muted);margin-top:6px;">{{ m.notes }}</div>
       {% endif %}
@@ -96,7 +107,7 @@
         {% if m.status == 'Available' %}
           <button class="btn btn-primary btn-sm"
                   onclick="openRentalModal('{{ m.id }}', '{{ m.brand }} {{ m.model }}')">
-            Book
+            Rent
           </button>
         {% else %}
           <button class="btn btn-outline btn-sm" disabled style="opacity:0.4;cursor:not-allowed;">
@@ -104,22 +115,21 @@
           </button>
         {% endif %}
 
-        {% if session.get('role') == 'admin' %}
+        {% if session.get('role') in ['admin', 'superadmin'] %}
         <button class="btn btn-outline btn-sm"
                 onclick="openEditMotor(
                   {{ m.id }},
                   '{{ m.brand }}','{{ m.model }}',{{ m.year }},'{{ m.type }}',
-                  '{{ m.plate }}',{{ m.rate_per_day }},'{{ m.status }}','{{ m.notes or '' }}'
+                  '{{ m.plate }}',{{ m.rate_per_day }},'{{ m.status }}','{{ m.notes or '' }}',
+                  {{ m.selling_price or 0 }}, {{ m.for_sale or 0 }}
                 )">Edit</button>
 
         <button class="btn btn-danger btn-sm"
                 onclick="confirmDeleteMotor({{ m.id }})">Del</button>
 
-        <!-- Hidden delete form -->
         <form id="deleteMotorForm-{{ m.id }}"
               action="{{ url_for('motor_delete', motor_id=m.id) }}"
-              method="POST" style="display:none;">
-        </form>
+              method="POST" style="display:none;"></form>
         {% endif %}
       </div>
     </div>
@@ -132,7 +142,7 @@
     <circle cx="6" cy="17" r="3"/><circle cx="18" cy="17" r="3"/>
     <path d="M9 17h6M3 17H1v-4l5-5h7l3 4h2l2 2v3h-2"/>
   </svg>
-  <p>No motors found. {% if session.get('role') == 'admin' %}Add one to get started!{% endif %}</p>
+  <p>No motors found. {% if session.get('role') in ['admin','superadmin'] %}Add one to get started!{% endif %}</p>
 </div>
 {% endif %}
 
@@ -184,12 +194,35 @@
         </div>
       </div>
 
+      <!-- NEW: Selling Price & For Sale toggle -->
+      <div style="background:var(--surface3);border-radius:10px;padding:14px;margin-bottom:14px;">
+        <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;
+                    color:#7c3aed;margin-bottom:10px;">Sales Settings</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Selling Price (&#8369;)</label>
+            <input class="form-control" id="m-selling-price" name="selling_price"
+                   type="number" placeholder="65000" step="0.01"/>
+          </div>
+          <div class="form-group" style="display:flex;flex-direction:column;justify-content:flex-end;">
+            <label class="form-label" style="margin-bottom:10px;">For Sale</label>
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px 14px;
+                          background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;">
+              <input type="checkbox" id="m-for-sale" name="for_sale" value="1"
+                     style="width:16px;height:16px;accent-color:var(--accent);"/>
+              <span style="font-size:0.85rem;color:var(--text);">Available for purchase</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
       <div class="form-group">
         <label class="form-label">Status</label>
         <select class="form-control" id="m-status" name="status">
           <option>Available</option>
           <option>Rented</option>
           <option>Under Maintenance</option>
+          <option>Sold</option>
         </select>
       </div>
 
@@ -217,7 +250,7 @@
 
     <form id="rentalForm" action="{{ url_for('rental_add') }}" method="POST">
 
-      {% if session.get('role') == 'admin' %}
+      {% if session.get('role') in ['admin', 'superadmin'] %}
       <div class="form-group">
         <label class="form-label">Customer *</label>
         <select class="form-control" id="r-customer" name="customer_id" required>
@@ -279,5 +312,29 @@
   {% if type_filter %}
   document.getElementById('motor-type-filter').value = '{{ type_filter }}';
   {% endif %}
+
+  // Extended filter to support for-sale filter
+  function filterMotorCards() {
+    const search  = (document.getElementById('motor-search')?.value || '').toLowerCase();
+    const status  = document.getElementById('motor-status-filter')?.value || '';
+    const type    = document.getElementById('motor-type-filter')?.value   || '';
+    const forSale = document.getElementById('motor-forsale-filter')?.value || '';
+
+    document.querySelectorAll('.motor-card[data-brand]').forEach(card => {
+      const brand = (card.dataset.brand || '').toLowerCase();
+      const model = (card.dataset.model || '').toLowerCase();
+      const plate = (card.dataset.plate || '').toLowerCase();
+      const cStatus  = card.dataset.status  || '';
+      const cType    = card.dataset.type    || '';
+      const cForSale = card.dataset.forsale || '0';
+
+      const matchSearch  = `${brand} ${model} ${plate}`.includes(search);
+      const matchStatus  = !status  || cStatus  === status;
+      const matchType    = !type    || cType    === type;
+      const matchForSale = !forSale || cForSale === forSale;
+
+      card.style.display = (matchSearch && matchStatus && matchType && matchForSale) ? '' : 'none';
+    });
+  }
 </script>
 {% endblock %}

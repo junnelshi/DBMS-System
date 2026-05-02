@@ -3,9 +3,10 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>MotoRent — Book a Motorcycle</title>
+  <title>MotoRent — Customer Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"/>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body class="portal-body">
 
@@ -26,22 +27,38 @@
 
   <!-- TABS -->
   <div class="portal-tabs">
-    <button class="portal-tab active" onclick="showTab('browse')" id="tab-browse">Browse Motors</button>
+    <button class="portal-tab active" onclick="showTab('browse')" id="tab-browse">
+      🏍️ Rent a Motor
+    </button>
+    <button class="portal-tab" onclick="showTab('buy')" id="tab-buy">
+      🛒 Buy a Motor
+    </button>
+    <button class="portal-tab" onclick="showTab('parts')" id="tab-parts">
+      🔧 Buy Parts
+    </button>
     <button class="portal-tab" onclick="showTab('myrentals')" id="tab-myrentals">
-      My Rentals
+      📋 My Rentals
       {% set pending_count = rentals | selectattr('status', 'equalto', 'Pending') | list | length %}
       {% if pending_count > 0 %}
       <span style="background:#fef9c3;color:#a16207;font-size:0.65rem;font-weight:700;
-                   padding:2px 7px;border-radius:20px;margin-left:6px;">{{ pending_count }} pending</span>
+                   padding:2px 7px;border-radius:20px;margin-left:6px;">{{ pending_count }}</span>
       {% endif %}
     </button>
-    <button class="portal-tab" onclick="showTab('profile')" id="tab-profile">My Profile</button>
+    <button class="portal-tab" onclick="showTab('myorders')" id="tab-myorders">
+      📦 My Orders
+    </button>
+    <button class="portal-tab" onclick="showTab('installments')" id="tab-installments">
+      💳 Installments
+    </button>
+    <button class="portal-tab" onclick="showTab('profile')" id="tab-profile">
+      👤 Profile
+    </button>
   </div>
 
   <!-- FLASH MESSAGES -->
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
-      <div style="max-width:1100px;margin:16px auto 0;padding:0 24px;">
+      <div style="max-width:1200px;margin:16px auto 0;padding:0 24px;">
         {% for category, message in messages %}
           <div class="flash flash-{{ category }}">{{ message }}</div>
         {% endfor %}
@@ -49,16 +66,13 @@
     {% endif %}
   {% endwith %}
 
-  <!-- ══════════════════════════════════════════
-       TAB 1: BROWSE MOTORS
-       ══════════════════════════════════════════ -->
-  <div class="portal-content" id="pane-browse">
 
-    <!-- Hero -->
+  <!-- ══ TAB 1: RENT ══ -->
+  <div class="portal-content" id="pane-browse">
     <div class="portal-hero">
       <div class="portal-hero-text">
         <h2>Welcome, {{ session.get('user_name').split()[0] }}!</h2>
-        <p>Browse our available motorcycles and book your ride today.</p>
+        <p>Browse available motorcycles and book your ride today.</p>
       </div>
       <div class="portal-hero-badge">
         <div class="portal-hero-badge-val">{{ available_motors | length }}</div>
@@ -66,7 +80,6 @@
       </div>
     </div>
 
-    <!-- Search & Filter -->
     <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin-bottom:20px;">
       <div class="filter-group">
         <label class="filter-label">Search</label>
@@ -78,155 +91,221 @@
         <label class="filter-label">Type</label>
         <select class="filter-input" id="portal-type" onchange="filterPortalCards()">
           <option value="">All Types</option>
-          <option>Scooter</option>
-          <option>Sport</option>
-          <option>Underbone</option>
-          <option>Cruiser</option>
-          <option>Trail</option>
-          <option>Electric</option>
+          <option>Scooter</option><option>Sport</option><option>Underbone</option>
+          <option>Cruiser</option><option>Trail</option><option>Electric</option>
         </select>
       </div>
     </div>
 
-    <!-- Motor Cards -->
     {% if available_motors %}
     <div class="portal-motor-grid" id="portal-motor-grid">
       {% for m in available_motors %}
-
-      {# Build image filename from brand + model #}
       {% set img_name = m.brand ~ ' ' ~ m.model %}
-
       <div class="portal-motor-card"
            data-brand="{{ m.brand }}" data-model="{{ m.model }}"
            data-plate="{{ m.plate }}" data-type="{{ m.type }}">
-
         <div class="portal-motor-img">
-          <img
-            src="{{ url_for('static', filename='images/' ~ img_name ~ '.png') }}"
-            alt="{{ m.brand }} {{ m.model }}"
-            onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
-          />
-          <!-- Fallback SVG shown only if image fails to load -->
-          <div style="display:none; width:100%; height:100%; align-items:center; justify-content:center;">
+          <img src="{{ url_for('static', filename='images/' ~ img_name ~ '.png') }}"
+               alt="{{ m.brand }} {{ m.model }}"
+               onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"/>
+          <div style="display:none;width:100%;height:100%;align-items:center;justify-content:center;">
             <svg viewBox="0 0 200 100" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:100px;">
-              <circle cx="45"  cy="72" r="24" stroke="#088395" stroke-width="4"/>
-              <circle cx="45"  cy="72" r="12" stroke="#088395" stroke-width="2"/>
+              <circle cx="45" cy="72" r="24" stroke="#088395" stroke-width="4"/>
               <circle cx="155" cy="72" r="24" stroke="#088395" stroke-width="4"/>
-              <circle cx="155" cy="72" r="12" stroke="#088395" stroke-width="2"/>
-              <path d="M69 72 L88 45 L126 40 L148 52 L155 72" stroke="#088395" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M88 45 L100 30 L120 32 L120 40" stroke="#088395" stroke-width="3" stroke-linecap="round"/>
-              <rect x="90" y="50" width="32" height="20" rx="3" stroke="#088395" stroke-width="3"/>
-              <path d="M122 65 L140 70" stroke="#088395" stroke-width="2.5" stroke-linecap="round"/>
-              <path d="M69 65 L55 71" stroke="#088395" stroke-width="3" stroke-linecap="round"/>
+              <path d="M69 72 L88 45 L126 40 L148 52 L155 72" stroke="#088395" stroke-width="4" stroke-linecap="round"/>
             </svg>
           </div>
           <div class="portal-motor-badge">
             <span class="status status-available">Available</span>
           </div>
         </div>
-
         <div class="portal-motor-body">
           <div class="portal-motor-name">{{ m.brand }} {{ m.model }}</div>
-          <div class="portal-motor-meta">{{ m.year }} &middot; {{ m.type }} &middot; {{ m.plate }}</div>
-          {% if m.notes %}
-          <div style="font-size:0.73rem;color:var(--muted);margin-bottom:10px;">{{ m.notes }}</div>
-          {% endif %}
+          <div class="portal-motor-meta">{{ m.year }} · {{ m.type }} · {{ m.plate }}</div>
+          {% if m.notes %}<div style="font-size:0.73rem;color:var(--muted);margin-bottom:10px;">{{ m.notes }}</div>{% endif %}
           <div class="portal-motor-footer">
             <div class="portal-motor-price">
               &#8369;{{ '{:,.0f}'.format(m.rate_per_day) }}<span>/day</span>
             </div>
             <button class="btn btn-primary btn-sm"
                     onclick="openBookingModal({{ m.id }}, '{{ m.brand }} {{ m.model }}', {{ m.rate_per_day }}, '{{ m.plate }}')">
-              Book Now
+              Rent Now
             </button>
           </div>
         </div>
       </div>
       {% endfor %}
     </div>
-
-    <div id="portal-no-results" style="display:none;">
-      <div class="portal-empty">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-          <circle cx="6" cy="17" r="3"/><circle cx="18" cy="17" r="3"/>
-          <path d="M9 17h6M3 17H1v-4l5-5h7l3 4h2l2 2v3h-2"/>
-        </svg>
-        <h3>No motors match your search</h3>
-        <p>Try different keywords or clear the filters.</p>
-      </div>
-    </div>
-
     {% else %}
     <div class="portal-empty">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-        <circle cx="6" cy="17" r="3"/><circle cx="18" cy="17" r="3"/>
-        <path d="M9 17h6M3 17H1v-4l5-5h7l3 4h2l2 2v3h-2"/>
-      </svg>
       <h3>No motors available right now</h3>
-      <p>Please check back soon — we're preparing our fleet.</p>
+      <p>Please check back soon.</p>
     </div>
     {% endif %}
   </div>
 
 
-  <!-- ══════════════════════════════════════════
-       TAB 2: MY RENTALS
-       ══════════════════════════════════════════ -->
-  <div class="portal-content" id="pane-myrentals" style="display:none;">
+  <!-- ══ TAB 2: BUY A MOTOR ══ -->
+  <div class="portal-content" id="pane-buy" style="display:none;">
+    <div class="portal-hero">
+      <div class="portal-hero-text">
+        <h2>Buy a Motorcycle</h2>
+        <p>Own your dream ride with cash or installment payment options.</p>
+      </div>
+    </div>
 
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
-      <div class="portal-section-title">My Rental History</div>
-      <div style="display:flex;gap:12px;align-items:center;">
-        <select class="filter-input" id="my-status-filter" onchange="filterMyRentals()" style="width:160px;">
-          <option value="">All Status</option>
-          <option>Pending</option>
-          <option>Rented</option>
-          <option>Returned</option>
-          <option>Overdue</option>
+    {% if sale_motors %}
+    <div class="portal-motor-grid">
+      {% for m in sale_motors %}
+      {% set img_name = m.brand ~ ' ' ~ m.model %}
+      <div class="portal-motor-card">
+        <div class="portal-motor-img">
+          <img src="{{ url_for('static', filename='images/' ~ img_name ~ '.png') }}"
+               alt="{{ m.brand }} {{ m.model }}"
+               onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"/>
+          <div style="display:none;width:100%;height:100%;align-items:center;justify-content:center;">
+            <svg viewBox="0 0 200 100" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:100px;">
+              <circle cx="45" cy="72" r="24" stroke="#088395" stroke-width="4"/>
+              <circle cx="155" cy="72" r="24" stroke="#088395" stroke-width="4"/>
+              <path d="M69 72 L88 45 L126 40 L148 52 L155 72" stroke="#088395" stroke-width="4" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="portal-motor-badge">
+            <span class="status status-available">For Sale</span>
+          </div>
+        </div>
+        <div class="portal-motor-body">
+          <div class="portal-motor-name">{{ m.brand }} {{ m.model }}</div>
+          <div class="portal-motor-meta">{{ m.year }} · {{ m.type }} · {{ m.plate }}</div>
+          {% if m.notes %}<div style="font-size:0.73rem;color:var(--muted);margin-bottom:8px;">{{ m.notes }}</div>{% endif %}
+          <div class="portal-motor-footer" style="flex-direction:column;align-items:flex-start;gap:8px;">
+            <div class="portal-motor-price" style="font-size:1.2rem;">
+              &#8369;{{ '{:,.0f}'.format(m.selling_price or 0) }}
+            </div>
+            {% if m.selling_price %}
+            <div style="font-size:0.72rem;color:var(--muted);">
+              Installment from ~₱{{ '{:,.0f}'.format((m.selling_price * 0.2)) }} down + {{ '{:,.0f}'.format((m.selling_price * 0.8) / 12) }}/mo
+            </div>
+            {% endif %}
+            <div style="display:flex;gap:8px;width:100%;">
+              <button class="btn btn-primary btn-sm" style="flex:1;"
+                      onclick="openBuyModal({{ m.id }}, '{{ m.brand }} {{ m.model }}', {{ m.selling_price or 0 }}, '{{ m.plate }}')">
+                Buy Now
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="portal-empty">
+      <h3>No motorcycles for sale right now</h3>
+      <p>Check back soon or contact us to inquire about purchasing.</p>
+    </div>
+    {% endif %}
+  </div>
+
+
+  <!-- ══ TAB 3: BUY PARTS ══ -->
+  <div class="portal-content" id="pane-parts" style="display:none;">
+    <div class="portal-hero">
+      <div class="portal-hero-text">
+        <h2>Parts Shop</h2>
+        <p>Find genuine and aftermarket parts for your motorcycle.</p>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px;">
+      <div class="filter-group">
+        <label class="filter-label">Search</label>
+        <input class="filter-input" id="parts-search" type="text"
+               placeholder="Part name, brand..."
+               oninput="filterPartsPortal()" style="min-width:200px;"/>
+      </div>
+      <div class="filter-group">
+        <label class="filter-label">Category</label>
+        <select class="filter-input" id="parts-category" onchange="filterPartsPortal()">
+          <option value="">All Categories</option>
+          <option>Engine</option><option>Brakes</option><option>Suspension</option>
+          <option>Electrical</option><option>Body</option><option>Tires</option>
+          <option>Accessories</option><option>Other</option>
         </select>
       </div>
     </div>
 
-    <!-- Summary -->
+    {% if parts %}
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;" id="parts-grid">
+      {% for p in parts %}
+      <div class="portal-motor-card" style="cursor:default;"
+           data-pname="{{ p.name }}" data-pbrand="{{ p.brand }}" data-pcategory="{{ p.category }}">
+        <div style="padding:16px;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+            <span class="tag">{{ p.category }}</span>
+            {% if p.stock < 5 %}
+            <span style="font-size:0.7rem;color:#dc2626;font-weight:600;">⚠ Low Stock</span>
+            {% endif %}
+          </div>
+          <div style="font-weight:700;font-size:0.98rem;color:var(--text1);margin-bottom:4px;">{{ p.name }}</div>
+          <div style="font-size:0.78rem;color:var(--muted);margin-bottom:4px;">{{ p.brand }}</div>
+          {% if p.compatible_with %}
+          <div style="font-size:0.72rem;color:var(--muted2);margin-bottom:10px;">Fits: {{ p.compatible_with }}</div>
+          {% endif %}
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;">
+            <div style="font-size:1.1rem;font-weight:700;color:var(--accent);">
+              &#8369;{{ '{:,.2f}'.format(p.price) }}
+            </div>
+            <div style="font-size:0.75rem;color:var(--muted);">Stock: {{ p.stock }}</div>
+          </div>
+          {% if p.stock > 0 %}
+          <button class="btn btn-primary btn-sm" style="width:100%;margin-top:10px;"
+                  onclick="openOrderModal({{ p.id }}, '{{ p.name }}', {{ p.price }}, {{ p.stock }})">
+            Order Now
+          </button>
+          {% else %}
+          <button class="btn btn-outline btn-sm" style="width:100%;margin-top:10px;opacity:0.5;" disabled>
+            Out of Stock
+          </button>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="portal-empty">
+      <h3>No parts available yet</h3>
+      <p>Check back soon for parts and accessories.</p>
+    </div>
+    {% endif %}
+  </div>
+
+
+  <!-- ══ TAB 4: MY RENTALS ══ -->
+  <div class="portal-content" id="pane-myrentals" style="display:none;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <div class="portal-section-title">My Rental History</div>
+      <select class="filter-input" id="my-status-filter" onchange="filterMyRentals()" style="width:160px;">
+        <option value="">All Status</option>
+        <option>Pending</option><option>Rented</option>
+        <option>Returned</option><option>Overdue</option>
+      </select>
+    </div>
+
     <div class="summary-row" style="margin-bottom:24px;">
-      {% set total    = rentals | length %}
       {% set active   = rentals | selectattr('status', 'equalto', 'Rented')   | list | length %}
       {% set pending  = rentals | selectattr('status', 'equalto', 'Pending')  | list | length %}
       {% set returned = rentals | selectattr('status', 'equalto', 'Returned') | list | length %}
-      <div class="summary-card">
-        <div class="summary-label">Total</div>
-        <div class="summary-value">{{ total }}</div>
-      </div>
-      <div class="summary-card">
-        <div class="summary-label">Active</div>
-        <div class="summary-value" style="color:var(--accent);">{{ active }}</div>
-      </div>
-      <div class="summary-card">
-        <div class="summary-label">Pending</div>
-        <div class="summary-value" style="color:#a16207;">{{ pending }}</div>
-      </div>
-      <div class="summary-card">
-        <div class="summary-label">Returned</div>
-        <div class="summary-value" style="color:var(--accent2);">{{ returned }}</div>
-      </div>
+      <div class="summary-card"><div class="summary-label">Total</div><div class="summary-value">{{ rentals | length }}</div></div>
+      <div class="summary-card"><div class="summary-label">Active</div><div class="summary-value" style="color:var(--accent);">{{ active }}</div></div>
+      <div class="summary-card"><div class="summary-label">Pending</div><div class="summary-value" style="color:#a16207;">{{ pending }}</div></div>
+      <div class="summary-card"><div class="summary-label">Returned</div><div class="summary-value" style="color:var(--accent2);">{{ returned }}</div></div>
     </div>
 
     {% if rentals %}
     <div class="panel" style="padding:0;">
       <div class="table-wrap">
         <table>
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Motor</th>
-              <th>Plate</th>
-              <th>Start Date</th>
-              <th>End Date</th>
-              <th>Total</th>
-              <th>Status</th>
-              <th>Note</th>
-            </tr>
-          </thead>
+          <thead><tr><th>#</th><th>Motor</th><th>Plate</th><th>Start</th><th>End</th><th>Total</th><th>Status</th><th>Note</th></tr></thead>
           <tbody id="my-rentals-tbody">
             {% for r in rentals %}
             <tr data-status="{{ r.status }}">
@@ -238,15 +317,10 @@
               <td style="font-weight:700;color:var(--accent);">&#8369;{{ '{:,.2f}'.format(r.total_cost) }}</td>
               <td><span class="status status-{{ r.status.lower() }}">{{ r.status }}</span></td>
               <td style="font-size:0.78rem;color:var(--muted);">
-                {% if r.status == 'Pending' %}
-                  Awaiting admin approval
-                {% elif r.status == 'Rented' %}
-                  Active rental
-                {% elif r.status == 'Returned' %}
-                  Completed
-                {% else %}
-                  {{ r.notes or '—' }}
-                {% endif %}
+                {% if r.status == 'Pending' %}Awaiting approval
+                {% elif r.status == 'Rented' %}Active rental
+                {% elif r.status == 'Returned' %}Completed
+                {% else %}{{ r.notes or '—' }}{% endif %}
               </td>
             </tr>
             {% endfor %}
@@ -256,129 +330,168 @@
     </div>
     {% else %}
     <div class="portal-empty">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-        <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2
-                 M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-      </svg>
       <h3>No rentals yet</h3>
-      <p>Head to the Browse tab to book your first motorcycle!</p>
       <button class="btn btn-primary" style="margin-top:16px;" onclick="showTab('browse')">Browse Motors</button>
     </div>
     {% endif %}
   </div>
 
 
-  <!-- ══════════════════════════════════════════
-       TAB 3: PROFILE
-       ══════════════════════════════════════════ -->
+  <!-- ══ TAB 5: MY ORDERS ══ -->
+  <div class="portal-content" id="pane-myorders" style="display:none;">
+    <div class="portal-section-title" style="margin-bottom:20px;">My Parts Orders</div>
+    {% if my_orders %}
+    <div class="panel" style="padding:0;">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>#</th><th>Part</th><th>Qty</th><th>Total</th><th>Date</th><th>Status</th></tr></thead>
+          <tbody>
+            {% for o in my_orders %}
+            <tr>
+              <td>#{{ o.id }}</td>
+              <td><strong>{{ o.part_name }}</strong></td>
+              <td>{{ o.quantity }}</td>
+              <td style="font-weight:700;color:var(--accent);">&#8369;{{ '{:,.2f}'.format(o.total_price) }}</td>
+              <td style="font-size:0.8rem;color:var(--muted);">{{ o.order_date }}</td>
+              <td><span class="status status-{{ o.status.lower() }}">{{ o.status }}</span></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% else %}
+    <div class="portal-empty">
+      <h3>No parts orders yet</h3>
+      <button class="btn btn-primary" style="margin-top:16px;" onclick="showTab('parts')">Browse Parts</button>
+    </div>
+    {% endif %}
+  </div>
+
+
+  <!-- ══ TAB 6: INSTALLMENTS ══ -->
+  <div class="portal-content" id="pane-installments" style="display:none;">
+    <div class="portal-section-title" style="margin-bottom:20px;">My Installment Plans</div>
+    {% if my_installments %}
+    <div style="display:grid;gap:16px;">
+      {% for inst in my_installments %}
+      {% set progress = ((inst.paid_months / inst.term_months) * 100) | round(0) | int if inst.term_months > 0 else 0 %}
+      <div style="background:var(--surface2);border-radius:14px;border:1px solid var(--border);padding:20px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
+          <div>
+            <div style="font-weight:700;font-size:1rem;">{{ inst.motor }}</div>
+            <div style="font-size:0.78rem;color:var(--muted);">{{ inst.plate }}</div>
+          </div>
+          <span class="status status-{{ inst.status.lower().replace(' ','-') }}">{{ inst.status }}</span>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;">
+          <div style="text-align:center;background:var(--surface3);border-radius:8px;padding:10px;">
+            <div style="font-size:0.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;">Total</div>
+            <div style="font-weight:700;color:var(--text1);">&#8369;{{ '{:,.0f}'.format(inst.total_price) }}</div>
+          </div>
+          <div style="text-align:center;background:var(--surface3);border-radius:8px;padding:10px;">
+            <div style="font-size:0.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;">Down</div>
+            <div style="font-weight:700;color:#16a34a;">&#8369;{{ '{:,.0f}'.format(inst.down_payment) }}</div>
+          </div>
+          <div style="text-align:center;background:var(--surface3);border-radius:8px;padding:10px;">
+            <div style="font-size:0.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;">Monthly</div>
+            <div style="font-weight:700;color:var(--accent);">&#8369;{{ '{:,.0f}'.format(inst.monthly_payment) }}</div>
+          </div>
+          <div style="text-align:center;background:var(--surface3);border-radius:8px;padding:10px;">
+            <div style="font-size:0.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;">Balance</div>
+            <div style="font-weight:700;color:#dc2626;">&#8369;{{ '{:,.0f}'.format(inst.balance_amount) }}</div>
+          </div>
+        </div>
+
+        <div style="margin-bottom:6px;display:flex;justify-content:space-between;font-size:0.8rem;">
+          <span style="color:var(--muted);">Progress: {{ inst.paid_months }}/{{ inst.term_months }} months</span>
+          <span style="color:var(--accent);font-weight:600;">{{ progress }}%</span>
+        </div>
+        <div class="progress-bar" style="height:8px;border-radius:4px;">
+          <div class="progress-fill" style="width:{{ progress }}%;border-radius:4px;"></div>
+        </div>
+
+        {% if inst.next_due_date %}
+        <div style="margin-top:12px;font-size:0.8rem;color:var(--muted);">
+          Next due: <strong style="color:{% if inst.status == 'Overdue' %}#dc2626{% else %}var(--text1){% endif %};">
+            {{ inst.next_due_date }}
+          </strong>
+        </div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="portal-empty">
+      <h3>No installment plans</h3>
+      <p>Buy a motorcycle with an installment plan to see it here.</p>
+      <button class="btn btn-primary" style="margin-top:16px;" onclick="showTab('buy')">Browse Motorcycles</button>
+    </div>
+    {% endif %}
+  </div>
+
+
+  <!-- ══ TAB 7: PROFILE ══ -->
   <div class="portal-content" id="pane-profile" style="display:none;">
     <div class="profile-grid">
-
-      <!-- Info card -->
       <div>
         <div class="profile-card">
           <div class="profile-avatar">{{ session.get('user_name', 'U')[0].upper() }}</div>
           <div class="profile-name">{{ session.get('user_name') }}</div>
           <div class="profile-idno">{{ customer.email if customer else '' }}</div>
-
           {% if customer %}
           <div class="profile-detail">
-            <div class="profile-detail-row">
-              <span>Phone</span><span>{{ customer.phone }}</span>
-            </div>
-            <div class="profile-detail-row">
-              <span>Date of Birth</span><span>{{ customer.birthdate or '—' }}</span>
-            </div>
-            <div class="profile-detail-row">
-              <span>Driver's License</span>
-              <span style="font-size:0.8rem;">{{ customer.license_no }}</span>
-            </div>
-            <div class="profile-detail-row">
-              <span>Address</span>
-              <span style="font-size:0.8rem;text-align:right;max-width:160px;">{{ customer.address or '—' }}</span>
-            </div>
-            <div class="profile-detail-row">
-              <span>Member Since</span>
-              <span style="font-size:0.8rem;">{{ customer.created_at[:10] if customer.created_at else '—' }}</span>
-            </div>
+            <div class="profile-detail-row"><span>Phone</span><span>{{ customer.phone }}</span></div>
+            <div class="profile-detail-row"><span>Date of Birth</span><span>{{ customer.birthdate or '—' }}</span></div>
+            <div class="profile-detail-row"><span>Driver's License</span><span style="font-size:0.8rem;">{{ customer.license_no }}</span></div>
+            <div class="profile-detail-row"><span>Address</span><span style="font-size:0.8rem;text-align:right;max-width:160px;">{{ customer.address or '—' }}</span></div>
+            <div class="profile-detail-row"><span>Member Since</span><span style="font-size:0.8rem;">{{ customer.created_at[:10] if customer.created_at else '—' }}</span></div>
           </div>
           {% endif %}
         </div>
       </div>
-
-      <!-- Change password -->
       <div>
         <div class="panel">
-          <div class="panel-header">
-            <div class="panel-title">Change Password</div>
-          </div>
+          <div class="panel-header"><div class="panel-title">Change Password</div></div>
           <form action="{{ url_for('profile') }}" method="POST" style="max-width:400px;">
-            <div class="form-group">
-              <label class="form-label">Current Password</label>
-              <input class="form-control" type="password" name="current_password" placeholder="••••••••" required/>
-            </div>
-            <div class="form-group">
-              <label class="form-label">New Password</label>
-              <input class="form-control" type="password" name="new_password" placeholder="••••••••" required/>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Confirm New Password</label>
-              <input class="form-control" type="password" name="confirm_password" placeholder="••••••••" required/>
-            </div>
+            <div class="form-group"><label class="form-label">Current Password</label><input class="form-control" type="password" name="current_password" placeholder="••••••••" required/></div>
+            <div class="form-group"><label class="form-label">New Password</label><input class="form-control" type="password" name="new_password" placeholder="••••••••" required/></div>
+            <div class="form-group"><label class="form-label">Confirm New</label><input class="form-control" type="password" name="confirm_password" placeholder="••••••••" required/></div>
             <button type="submit" class="btn btn-primary">Update Password</button>
           </form>
         </div>
       </div>
-
     </div>
   </div>
 
 
-  <!-- ══════════════════════════════════════════
-       BOOKING MODAL
-       ══════════════════════════════════════════ -->
+  <!-- ══ BOOKING MODAL ══ -->
   <div class="modal-overlay" id="bookingModal">
     <div class="modal">
       <div class="modal-header">
         <div class="modal-title">Book a Motorcycle</div>
         <button class="modal-close" onclick="closeModal('bookingModal')">&#x2715;</button>
       </div>
-
       <form id="bookingForm" action="{{ url_for('rental_add') }}" method="POST">
-
         <div class="booking-summary" id="booking-motor-summary">
           <div class="booking-summary-motor" id="bk-motor-name">—</div>
           <div class="booking-summary-rate" id="bk-motor-rate">—</div>
         </div>
-
         <input type="hidden" id="bk-motor-id" name="motor_id"/>
-
         <div class="form-row" style="margin-top:16px;">
-          <div class="form-group">
-            <label class="form-label">Start Date *</label>
-            <input class="form-control" id="bk-start" name="start_date" type="date" required/>
-          </div>
-          <div class="form-group">
-            <label class="form-label">End Date *</label>
-            <input class="form-control" id="bk-end" name="end_date" type="date" required/>
-          </div>
+          <div class="form-group"><label class="form-label">Start Date *</label><input class="form-control" id="bk-start" name="start_date" type="date" required/></div>
+          <div class="form-group"><label class="form-label">End Date *</label><input class="form-control" id="bk-end" name="end_date" type="date" required/></div>
         </div>
-
-        <div class="rental-total-box" id="bk-total">
-          Select dates to calculate total cost.
-        </div>
-
+        <div class="rental-total-box" id="bk-total">Select dates to calculate total.</div>
         <div class="form-group" style="margin-top:14px;">
           <label class="form-label">Notes <span style="color:var(--muted);font-weight:400;">(optional)</span></label>
-          <textarea class="form-control" name="notes" placeholder="Any special requests or notes..."></textarea>
+          <textarea class="form-control" name="notes" placeholder="Any special requests..."></textarea>
         </div>
-
         <div style="margin-top:4px;padding:10px 14px;background:var(--surface3);border-radius:8px;font-size:0.78rem;color:var(--muted);">
           ℹ️ Your booking will be <strong>pending admin approval</strong> before it becomes active.
         </div>
-
       </form>
-
       <div class="modal-footer">
         <button class="btn btn-outline" onclick="closeModal('bookingModal')">Cancel</button>
         <button class="btn btn-primary" onclick="submitBooking()">Confirm Booking</button>
@@ -386,26 +499,119 @@
     </div>
   </div>
 
-  <div class="toast-container" id="toastContainer"></div>
+  <!-- ══ BUY MODAL ══ -->
+  <div class="modal-overlay" id="buyModal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">Purchase Motorcycle</div>
+        <button class="modal-close" onclick="closeModal('buyModal')">&#x2715;</button>
+      </div>
+      <form id="buyForm" action="{{ url_for('portal_buy') }}" method="POST">
+        <div class="booking-summary">
+          <div class="booking-summary-motor" id="buy-motor-name">—</div>
+          <div class="booking-summary-rate" id="buy-motor-price">—</div>
+        </div>
+        <input type="hidden" id="buy-motor-id" name="motor_id"/>
+        <div class="form-group" style="margin-top:16px;">
+          <label class="form-label">Payment Type *</label>
+          <select class="form-control" name="payment_type" id="buy-payment-type"
+                  onchange="toggleBuyInstallment()">
+            <option value="Cash">Cash (Full Payment)</option>
+            <option value="Installment">Installment</option>
+            <option value="Bank Transfer">Bank Transfer</option>
+          </select>
+        </div>
 
+        <div id="buy-installment-opts" style="display:none;background:var(--surface3);padding:14px;border-radius:10px;margin-bottom:12px;">
+          <div style="font-size:0.75rem;font-weight:700;color:var(--accent);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px;">Installment Setup</div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Down Payment (₱)</label>
+              <input class="form-control" type="number" name="down_payment" id="buy-down" placeholder="5000" step="0.01" oninput="calcBuyMonthly()"/>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Term (months)</label>
+              <select class="form-control" name="installment_months" id="buy-months" onchange="calcBuyMonthly()">
+                <option value="6">6 months</option>
+                <option value="12" selected>12 months</option>
+                <option value="18">18 months</option>
+                <option value="24">24 months</option>
+                <option value="36">36 months</option>
+              </select>
+            </div>
+          </div>
+          <div id="buy-monthly-preview" style="font-size:0.82rem;color:var(--muted);padding:8px 10px;background:var(--surface2);border-radius:6px;"></div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Notes</label>
+          <textarea class="form-control" name="notes" placeholder="Optional..."></textarea>
+        </div>
+        <div style="padding:10px 14px;background:var(--surface3);border-radius:8px;font-size:0.78rem;color:var(--muted);">
+          ℹ️ Purchase requests require <strong>admin confirmation</strong>. You will be notified once confirmed.
+        </div>
+      </form>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeModal('buyModal')">Cancel</button>
+        <button class="btn btn-primary" onclick="submitBuy()">Submit Request</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ ORDER MODAL ══ -->
+  <div class="modal-overlay" id="orderModal">
+    <div class="modal" style="max-width:400px;">
+      <div class="modal-header">
+        <div class="modal-title">Order Part</div>
+        <button class="modal-close" onclick="closeModal('orderModal')">&#x2715;</button>
+      </div>
+      <form id="orderForm" action="{{ url_for('portal_order_part') }}" method="POST">
+        <div class="booking-summary">
+          <div class="booking-summary-motor" id="order-part-name">—</div>
+          <div class="booking-summary-rate" id="order-part-price">—</div>
+        </div>
+        <input type="hidden" id="order-part-id" name="part_id"/>
+        <div class="form-row" style="margin-top:16px;">
+          <div class="form-group">
+            <label class="form-label">Quantity</label>
+            <input class="form-control" id="order-qty" type="number" name="quantity"
+                   value="1" min="1" oninput="calcOrderTotal()"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Total</label>
+            <div class="form-control" id="order-total" style="background:var(--surface3);cursor:default;font-weight:700;color:var(--accent);">—</div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Notes</label>
+          <textarea class="form-control" name="notes" placeholder="Delivery address, special request..."></textarea>
+        </div>
+      </form>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeModal('orderModal')">Cancel</button>
+        <button class="btn btn-primary" onclick="submitOrder()">Place Order</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toastContainer"></div>
   <script src="{{ url_for('static', filename='script.js') }}"></script>
   <script>
     // ── Tab switching ──
     function showTab(tab) {
-      ['browse', 'myrentals', 'profile'].forEach(t => {
+      ['browse','buy','parts','myrentals','myorders','installments','profile'].forEach(t => {
         document.getElementById('pane-' + t).style.display = t === tab ? 'block' : 'none';
         document.getElementById('tab-' + t).classList.toggle('active', t === tab);
       });
     }
 
-    // ── Open booking modal ──
+    // ── Booking modal ──
     let currentRate = 0;
     function openBookingModal(motorId, motorName, rate, plate) {
       currentRate = rate;
-      document.getElementById('bk-motor-id').value = motorId;
+      document.getElementById('bk-motor-id').value   = motorId;
       document.getElementById('bk-motor-name').textContent = motorName + ' · ' + plate;
       document.getElementById('bk-motor-rate').textContent = '₱' + rate.toLocaleString() + ' per day';
-
       const today    = new Date().toISOString().split('T')[0];
       const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
       document.getElementById('bk-start').value = today;
@@ -413,18 +619,16 @@
       calcBookingTotal();
       openModal('bookingModal');
     }
-
     function calcBookingTotal() {
       const start = document.getElementById('bk-start').value;
       const end   = document.getElementById('bk-end').value;
-      const box   = document.getElementById('bk-total');
       if (!start || !end) return;
       const days  = Math.max(1, Math.round((new Date(end) - new Date(start)) / 86400000));
       const total = days * currentRate;
-      box.innerHTML = `<span style="color:var(--muted)">${days} day(s) × ₱${currentRate.toLocaleString()}/day = </span>
-                       <strong style="color:var(--accent);font-size:1rem;">₱${total.toLocaleString()}</strong>`;
+      document.getElementById('bk-total').innerHTML =
+        `<span style="color:var(--muted)">${days} day(s) × ₱${currentRate.toLocaleString()}/day = </span>
+         <strong style="color:var(--accent);font-size:1rem;">₱${total.toLocaleString()}</strong>`;
     }
-
     function submitBooking() {
       const start = document.getElementById('bk-start').value;
       const end   = document.getElementById('bk-end').value;
@@ -432,40 +636,90 @@
       if (new Date(end) <= new Date(start)) { showToast('End date must be after start date.', 'error'); return; }
       document.getElementById('bookingForm').submit();
     }
+    document.getElementById('bk-start')?.addEventListener('change', calcBookingTotal);
+    document.getElementById('bk-end')?.addEventListener('change', calcBookingTotal);
 
-    // ── Filter portal motor cards ──
+    // ── Buy modal ──
+    let buyPrice = 0;
+    function openBuyModal(motorId, motorName, price, plate) {
+      buyPrice = price;
+      document.getElementById('buy-motor-id').value = motorId;
+      document.getElementById('buy-motor-name').textContent = motorName + ' · ' + plate;
+      document.getElementById('buy-motor-price').textContent = '₱' + price.toLocaleString();
+      document.getElementById('buy-down').value = '';
+      document.getElementById('buy-monthly-preview').textContent = '';
+      openModal('buyModal');
+    }
+    function toggleBuyInstallment() {
+      const val = document.getElementById('buy-payment-type').value;
+      document.getElementById('buy-installment-opts').style.display = val === 'Installment' ? 'block' : 'none';
+    }
+    function calcBuyMonthly() {
+      const down   = parseFloat(document.getElementById('buy-down').value) || 0;
+      const months = parseInt(document.getElementById('buy-months').value) || 12;
+      const bal    = buyPrice - down;
+      if (bal <= 0) { document.getElementById('buy-monthly-preview').textContent = '✓ Fully covered by down payment'; return; }
+      const monthly = bal / months;
+      document.getElementById('buy-monthly-preview').textContent =
+        `Balance ₱${bal.toLocaleString()} ÷ ${months} months = ₱${monthly.toLocaleString('en-PH', {minimumFractionDigits:2, maximumFractionDigits:2})} / month`;
+    }
+    function submitBuy() {
+      document.getElementById('buyForm').submit();
+    }
+
+    // ── Order modal ──
+    let partUnitPrice = 0;
+    let maxStock = 0;
+    function openOrderModal(partId, partName, price, stock) {
+      partUnitPrice = price;
+      maxStock = stock;
+      document.getElementById('order-part-id').value = partId;
+      document.getElementById('order-part-name').textContent = partName;
+      document.getElementById('order-part-price').textContent = '₱' + price.toLocaleString() + ' per unit';
+      document.getElementById('order-qty').value = 1;
+      document.getElementById('order-qty').max = stock;
+      calcOrderTotal();
+      openModal('orderModal');
+    }
+    function calcOrderTotal() {
+      const qty = parseInt(document.getElementById('order-qty').value) || 1;
+      const total = qty * partUnitPrice;
+      document.getElementById('order-total').textContent = '₱' + total.toLocaleString();
+    }
+    function submitOrder() {
+      document.getElementById('orderForm').submit();
+    }
+
+    // ── Filters ──
     function filterPortalCards() {
       const search = (document.getElementById('portal-search')?.value || '').toLowerCase();
       const type   = document.getElementById('portal-type')?.value || '';
       let visible  = 0;
-      document.querySelectorAll('.portal-motor-card').forEach(card => {
+      document.querySelectorAll('.portal-motor-card[data-brand]').forEach(card => {
         const text = `${card.dataset.brand} ${card.dataset.model} ${card.dataset.plate}`.toLowerCase();
-        const cType = card.dataset.type || '';
-        const show  = text.includes(search) && (!type || cType === type);
+        const show = text.includes(search) && (!type || card.dataset.type === type);
         card.style.display = show ? '' : 'none';
         if (show) visible++;
       });
-      const noRes = document.getElementById('portal-no-results');
-      const grid  = document.getElementById('portal-motor-grid');
-      if (noRes) noRes.style.display = visible === 0 ? 'block' : 'none';
-      if (grid)  grid.style.display  = visible === 0 ? 'none'  : '';
     }
-
-    // ── Filter my rentals ──
     function filterMyRentals() {
       const status = document.getElementById('my-status-filter')?.value || '';
       document.querySelectorAll('#my-rentals-tbody tr').forEach(row => {
         row.style.display = (!status || row.dataset.status === status) ? '' : 'none';
       });
     }
+    function filterPartsPortal() {
+      const search   = (document.getElementById('parts-search')?.value || '').toLowerCase();
+      const category = document.getElementById('parts-category')?.value || '';
+      document.querySelectorAll('#parts-grid .portal-motor-card[data-pname]').forEach(card => {
+        const text = `${card.dataset.pname} ${card.dataset.pbrand}`.toLowerCase();
+        const show = text.includes(search) && (!category || card.dataset.pcategory === category);
+        card.style.display = show ? '' : 'none';
+      });
+    }
 
-    // ── Date change listeners ──
-    document.getElementById('bk-start')?.addEventListener('change', calcBookingTotal);
-    document.getElementById('bk-end')?.addEventListener('change', calcBookingTotal);
-
-    // ── Auto-open My Rentals tab if redirected after booking ──
     const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('tab') === 'myrentals') showTab('myrentals');
+    if (urlParams.get('tab')) showTab(urlParams.get('tab'));
   </script>
 </body>
 </html>

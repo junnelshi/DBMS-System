@@ -4,167 +4,402 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>MotoRent — Sign In</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"/>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{min-height:100vh;display:flex;font-family:'DM Sans',sans-serif;background:#0b0e1a;overflow:hidden;animation:pageEnter 0.8s ease forwards}
+    @keyframes pageEnter{0%{opacity:0}100%{opacity:1}}
+
+    /* ── LEFT PANEL ── */
+    .login-left{
+      width:48%;min-height:100vh;
+      background:linear-gradient(145deg,#0d1b2a 0%,#0a2540 40%,#083150 70%,#041c30 100%);
+      display:flex;flex-direction:column;justify-content:center;align-items:center;
+      position:relative;overflow:hidden;padding:48px;
+    }
+    .login-left::before{
+      content:'';position:absolute;inset:0;
+      background:radial-gradient(ellipse at 30% 50%,rgba(8,131,149,0.18) 0%,transparent 60%),
+                 radial-gradient(ellipse at 80% 80%,rgba(6,78,99,0.25) 0%,transparent 55%);
+    }
+
+    /* floating orbs */
+    .orb{position:absolute;border-radius:50%;filter:blur(40px);opacity:0.18;animation:floatOrb 8s ease-in-out infinite;}
+    .orb-1{width:280px;height:280px;background:#088395;top:-60px;right:-80px;animation-delay:0s;}
+    .orb-2{width:180px;height:180px;background:#0ea5e9;bottom:80px;left:-40px;animation-delay:-3s;}
+    .orb-3{width:120px;height:120px;background:#06b6d4;top:40%;right:10%;animation-delay:-5s;}
+    @keyframes floatOrb{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-24px) scale(1.06)}}
+
+    /* floating motorcycle silhouette */
+    .moto-float{
+      position:relative;z-index:2;
+      animation:motoFloat 4s ease-in-out infinite;
+      margin-bottom:32px;
+      width:380px;
+      height:200px;
+    }
+    .login-lottie{
+      width:100%;
+      height:100%;
+    }
+    @keyframes motoFloat{0%,100%{transform:translateY(0) rotate(-1deg)}50%{transform:translateY(-14px) rotate(1deg)}}
+
+    .moto-glow{
+      position:absolute;bottom:-18px;left:50%;transform:translateX(-50%);
+      width:260px;height:22px;
+      background:radial-gradient(ellipse,rgba(8,131,149,0.55) 0%,transparent 70%);
+      animation:glowPulse 4s ease-in-out infinite;
+      border-radius:50%;
+    }
+    @keyframes glowPulse{0%,100%{opacity:0.6;transform:translateX(-50%) scaleX(1)}50%{opacity:1;transform:translateX(-50%) scaleX(1.15)}}
+
+    /* brand block */
+    .brand-block{position:relative;z-index:2;text-align:center;}
+    .brand-name{
+      font-family:'Bebas Neue',sans-serif;
+      font-size:4.5rem;letter-spacing:4px;
+      color:#fff;line-height:1;
+      text-shadow:0 0 40px rgba(8,131,149,0.6);
+    }
+    .brand-name span{color:#088395;}
+    .brand-tagline{
+      font-size:0.78rem;font-weight:500;letter-spacing:3px;text-transform:uppercase;
+      color:rgba(255,255,255,0.45);margin-top:6px;
+    }
+    .brand-divider{
+      width:60px;height:2px;margin:18px auto;
+      background:linear-gradient(90deg,transparent,#088395,transparent);
+    }
+    .brand-desc{
+      font-size:0.88rem;color:rgba(255,255,255,0.5);line-height:1.7;
+      max-width:300px;
+    }
+
+    /* floating badge chips */
+    .feat-chips{
+      display:flex;gap:10px;flex-wrap:wrap;justify-content:center;
+      margin-top:28px;position:relative;z-index:2;
+    }
+    .feat-chip{
+      padding:5px 14px;border-radius:20px;font-size:0.72rem;font-weight:600;
+      letter-spacing:0.5px;
+      background:rgba(8,131,149,0.15);
+      border:1px solid rgba(8,131,149,0.35);
+      color:rgba(255,255,255,0.7);
+      animation:chipFloat 6s ease-in-out infinite;
+    }
+    .feat-chip:nth-child(2){animation-delay:-2s;}
+    .feat-chip:nth-child(3){animation-delay:-4s;}
+    .feat-chip:nth-child(4){animation-delay:-1s;}
+    @keyframes chipFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+
+    /* ── RIGHT PANEL ── */
+    .login-right{
+      width:52%;min-height:100vh;
+      background:#f8fafc;
+      display:flex;align-items:center;justify-content:center;
+      padding:48px 56px;
+      position:relative;overflow:hidden;
+    }
+    .login-right::before{
+      content:'';position:absolute;top:-120px;right:-120px;
+      width:340px;height:340px;border-radius:50%;
+      background:radial-gradient(circle,rgba(8,131,149,0.06) 0%,transparent 70%);
+    }
+    .login-right::after{
+      content:'';position:absolute;bottom:-80px;left:-80px;
+      width:260px;height:260px;border-radius:50%;
+      background:radial-gradient(circle,rgba(14,165,233,0.05) 0%,transparent 70%);
+    }
+
+    .auth-box{width:100%;max-width:420px;position:relative;z-index:2;animation:slideInUp 0.7s ease forwards}
+
+    .auth-welcome{margin-bottom:30px;animation:fadeIn 0.8s ease 0.1s forwards;opacity:0}
+    .auth-welcome h2{
+      font-family:'Bebas Neue',sans-serif;font-size:2rem;letter-spacing:2px;
+      color:#0f172a;
+    }
+    .auth-welcome p{font-size:0.88rem;color:#64748b;margin-top:4px;}
+
+    /* flash */
+    .flash{
+      padding:10px 14px;border-radius:8px;font-size:0.82rem;margin-bottom:14px;
+      border-left:3px solid transparent;
+    }
+    .flash-error{background:#fef2f2;border-color:#ef4444;color:#991b1b;}
+    .flash-success{background:#f0fdf4;border-color:#22c55e;color:#166534;}
+    .flash-info{background:#eff6ff;border-color:#3b82f6;color:#1e40af;}
+
+    /* tabs */
+    .auth-tabs{
+      display:flex;gap:0;background:#f1f5f9;border-radius:10px;padding:4px;
+      margin-bottom:24px;animation:slideInUp 0.6s ease 0.1s forwards;opacity:0;
+    }
+    .auth-tab{
+      flex:1;padding:8px 0;border:none;background:transparent;cursor:pointer;
+      font-family:'DM Sans',sans-serif;font-size:0.82rem;font-weight:600;
+      color:#94a3b8;border-radius:7px;transition:all 0.3s ease;
+    }
+    .auth-tab.active{background:#fff;color:#0f172a;box-shadow:0 1px 4px rgba(0,0,0,0.1);}
+
+    /* panel */
+    .auth-panel{display:none;}
+    .auth-panel.active{display:block;animation:fadeIn 0.5s ease forwards}
+
+    /* form */
+    .form-group{margin-bottom:16px;animation:slideInUp 0.6s ease forwards;opacity:0}
+    .form-group:nth-child(1){animation-delay:0.15s}
+    .form-group:nth-child(2){animation-delay:0.25s}
+    .form-group:nth-child(3){animation-delay:0.35s}
+    .form-group:nth-child(4){animation-delay:0.45s}
+    .form-group:nth-child(5){animation-delay:0.55s}
+    .form-label{
+      display:block;font-size:0.76rem;font-weight:600;letter-spacing:0.5px;
+      text-transform:uppercase;color:#475569;margin-bottom:6px;
+    }
+    .input-icon-wrap{position:relative;}
+    .input-icon{
+      position:absolute;left:12px;top:50%;transform:translateY(-50%);
+      width:16px;height:16px;color:#94a3b8;pointer-events:none;
+    }
+    .input-icon-wrap .form-control{padding-left:38px;}
+    .form-control{
+      width:100%;padding:10px 14px;border-radius:9px;font-size:0.88rem;
+      font-family:'DM Sans',sans-serif;
+      border:1.5px solid #e2e8f0;background:#fff;color:#0f172a;
+      transition:all 0.3s ease;outline:none;
+    }
+    .form-control:focus{border-color:#088395;box-shadow:0 0 0 3px rgba(8,131,149,0.12);}
+    textarea.form-control{resize:vertical;min-height:64px;}
+
+    .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+
+    .section-label{
+      font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;
+      color:#088395;margin:20px 0 12px;
+      display:flex;align-items:center;gap:8px;
+    }
+    .section-label::after{content:'';flex:1;height:1px;background:#e2e8f0;}
+
+    .btn-primary-full{
+      width:100%;padding:12px;border:none;border-radius:10px;cursor:pointer;
+      font-family:'DM Sans',sans-serif;font-size:0.92rem;font-weight:700;
+      letter-spacing:0.5px;
+      background:linear-gradient(135deg,#088395,#0ea5e9);
+      color:#fff;margin-top:8px;
+      transition:all 0.3s ease;
+      box-shadow:0 4px 14px rgba(8,131,149,0.35);
+      position:relative;overflow:hidden;
+    }
+    .btn-primary-full::after{
+      content:'';position:absolute;inset:0;
+      background:linear-gradient(135deg,transparent,rgba(255,255,255,0.08),transparent);
+      transform:translateX(-100%);transition:transform 0.5s ease;
+    }
+    .btn-primary-full:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(8,131,149,0.45);}
+    .btn-primary-full:hover::after{transform:translateX(100%);}
+    .btn-primary-full:active{transform:translateY(0);}
+
+    .auth-footer-note{
+      margin-top:12px;font-size:0.77rem;color:#94a3b8;text-align:center;
+    }
+
+    /* Page and form animations */
+    @keyframes slideInUp{
+      from{opacity:0;transform:translateY(24px)}
+      to{opacity:1;transform:translateY(0)}
+    }
+    @keyframes fadeIn{
+      from{opacity:0}
+      to{opacity:1}
+    }
+
+    @media(max-width:768px){
+      body{flex-direction:column;overflow:auto;}
+      .login-left{width:100%;min-height:auto;padding:40px 24px;}
+      .login-right{width:100%;min-height:auto;padding:32px 24px;}
+    }
+  </style>
 </head>
-<body style="background:#f1f5f9;min-height:100vh;">
+<body>
 
-<div class="auth-wrapper">
-  <div class="auth-card">
+  <!-- ══ LEFT PANEL ══ -->
+  <div class="login-left">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
 
-    <!-- Brand -->
-    <div class="auth-brand">
-      <div class="logo-mark">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-             stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="5.5" cy="17.5" r="3.5"/>
-          <circle cx="18.5" cy="17.5" r="3.5"/>
-          <path d="M15 6h-3l-2 5H5.5M15 6l2 5h1.5M8 11h6"/>
-        </svg>
-      </div>
-      <h1>Moto<span>Rent</span></h1>
-      <p>Motor Rental Management System</p>
+    <!-- Floating motorcycle animation -->
+    <div class="moto-float">
+      <div id="loginLottie" class="login-lottie"></div>
+      <div class="moto-glow"></div>
     </div>
 
-    <!-- Flash messages -->
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        {% for category, message in messages %}
-          <div class="flash flash-{{ category }}">{{ message }}</div>
-        {% endfor %}
-      {% endif %}
-    {% endwith %}
-
-    <!-- Tabs -->
-    <div class="auth-tabs">
-      <button class="auth-tab active" data-tab="login" onclick="switchTab('login')">Sign In</button>
-      <button class="auth-tab" data-tab="register" onclick="switchTab('register')">Create Account</button>
+    <div class="brand-block">
+      <div class="brand-name">Moto<span>Rent</span></div>
+      <div class="brand-divider"></div>
     </div>
 
-    <!-- ── LOGIN PANEL ── -->
-    <div class="auth-panel active" id="login-panel">
-      <form action="{{ url_for('login') }}" method="POST">
-
-        <div class="form-group">
-          <label class="form-label">Email Address</label>
-          <div class="input-icon-wrap">
-            <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-              <polyline points="22,6 12,13 2,6"/>
-            </svg>
-            <input class="form-control" type="email" name="idno"
-                   placeholder="you@email.com" required/>
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label">Password</label>
-          <div class="input-icon-wrap">
-            <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-              <path d="M7 11V7a5 5 0 0110 0v4"/>
-            </svg>
-            <input class="form-control" type="password" name="password"
-                   placeholder="••••••••" required/>
-          </div>
-        </div>
-
-        <button type="submit" class="btn btn-primary btn-full" style="margin-top:8px;">
-          Sign In
-        </button>
-      </form>
-
-      <div class="auth-footer" style="margin-top:14px;">
-        Admin? Use your admin email to sign in.
-      </div>
+    <div class="feat-chips">
+      <div class="feat-chip">🏍️ Rent</div>
+      <div class="feat-chip">🛒 Buy</div>
+      <div class="feat-chip">🔧 Parts</div>
+      <div class="feat-chip">💳 Installment</div>
+      <div class="feat-chip">🏢 Multi-Branch</div>
     </div>
-
-    <!-- ── REGISTER PANEL ── -->
-    <div class="auth-panel" id="register-panel">
-      <form action="{{ url_for('register') }}" method="POST">
-
-        <div class="section-label">Personal Information</div>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">First Name *</label>
-            <input class="form-control" type="text" name="firstname" placeholder="Juan" required/>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Last Name *</label>
-            <input class="form-control" type="text" name="lastname" placeholder="Dela Cruz" required/>
-          </div>
-        </div>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">Date of Birth *</label>
-            <input class="form-control" type="date" name="birthdate" required/>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Phone Number *</label>
-            <input class="form-control" type="tel" name="phone" placeholder="09XX XXX XXXX" required/>
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label">Address *</label>
-          <textarea class="form-control" name="address" rows="2"
-                    placeholder="Street, Barangay, City, Province" required></textarea>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label">Driver's License No. *</label>
-          <input class="form-control" type="text" name="license_no"
-                 placeholder="e.g. N01-23-456789" required/>
-        </div>
-
-        <div class="section-label">Account Credentials</div>
-
-        <div class="form-group">
-          <label class="form-label">Email Address *</label>
-          <input class="form-control" type="email" name="email"
-                 placeholder="juan@email.com" required/>
-        </div>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">Password *</label>
-            <input class="form-control" type="password" name="password" placeholder="••••••••" required/>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Confirm *</label>
-            <input class="form-control" type="password" name="confirm_password" placeholder="••••••••" required/>
-          </div>
-        </div>
-
-        <button type="submit" class="btn btn-primary btn-full" style="margin-top:8px;">
-          Create Account
-        </button>
-      </form>
-    </div>
-
   </div>
-</div>
 
-<script>
-  // Auto-dismiss flash messages after 3 seconds
-  document.querySelectorAll('.flash').forEach(flash => {
-    setTimeout(() => {
-      flash.style.transition = 'opacity 0.5s ease, transform 0.5s ease, max-height 0.5s ease, margin 0.5s ease, padding 0.5s ease';
-      flash.style.overflow = 'hidden';
-      flash.style.maxHeight = flash.offsetHeight + 'px';
-      requestAnimationFrame(() => {
-        flash.style.opacity = '0';
-        flash.style.transform = 'translateY(-6px)';
-        flash.style.maxHeight = '0';
-        flash.style.marginBottom = '0';
-        flash.style.padding = '0';
+  <!-- ══ RIGHT PANEL ══ -->
+  <div class="login-right">
+    <div class="auth-box">
+
+      <div class="auth-welcome">
+        <h2>WELCOME ! </h2>
+        <p>Sign in to your account or create a new one.</p>
+      </div>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="flash flash-{{ category }}">{{ message }}</div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      <div class="auth-tabs">
+        <button class="auth-tab active" data-tab="login" onclick="switchTab('login')">Sign In</button>
+        <button class="auth-tab" data-tab="register" onclick="switchTab('register')">Create Account</button>
+      </div>
+
+      <!-- ── LOGIN ── -->
+      <div class="auth-panel active" id="login-panel">
+        <form action="{{ url_for('login') }}" method="POST">
+
+          <div class="form-group">
+            <label class="form-label">Email Address</label>
+            <div class="input-icon-wrap">
+              <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                <polyline points="22,6 12,13 2,6"/>
+              </svg>
+              <input class="form-control" type="email" name="idno" placeholder="you@email.com" required/>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Password</label>
+            <div class="input-icon-wrap">
+              <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0110 0v4"/>
+              </svg>
+              <input class="form-control" type="password" name="password" placeholder="••••••••" required/>
+            </div>
+          </div>
+
+          <button type="submit" class="btn-primary-full">Sign In →</button>
+        </form>
+        <div class="auth-footer-note">Admin? Use your admin credentials to sign in.</div>
+      </div>
+
+      <!-- ── REGISTER ── -->
+      <div class="auth-panel" id="register-panel">
+        <form action="{{ url_for('register') }}" method="POST">
+
+          <div class="section-label">Personal Information</div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">First Name *</label>
+              <input class="form-control" type="text" name="firstname" placeholder="Juan" required/>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Last Name *</label>
+              <input class="form-control" type="text" name="lastname" placeholder="Dela Cruz" required/>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Date of Birth *</label>
+              <input class="form-control" type="date" name="birthdate" required/>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Phone *</label>
+              <input class="form-control" type="tel" name="phone" placeholder="09XX XXX XXXX" required/>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Address *</label>
+            <textarea class="form-control" name="address" rows="2"
+                      placeholder="Street, Barangay, City, Province" required></textarea>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Driver's License No. *</label>
+            <input class="form-control" type="text" name="license_no"
+                   placeholder="e.g. N01-23-456789" required/>
+          </div>
+
+          <div class="section-label">Account Credentials</div>
+
+          <div class="form-group">
+            <label class="form-label">Email Address *</label>
+            <input class="form-control" type="email" name="email"
+                   placeholder="juan@email.com" required/>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Password *</label>
+              <input class="form-control" type="password" name="password" placeholder="••••••••" required/>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Confirm *</label>
+              <input class="form-control" type="password" name="confirm_password" placeholder="••••••••" required/>
+            </div>
+          </div>
+
+          <button type="submit" class="btn-primary-full">Create Account →</button>
+        </form>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.10.2/lottie.min.js"></script>
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
+  <script>
+    if (window.lottie) {
+      lottie.loadAnimation({
+        container: document.getElementById('loginLottie'),
+        renderer: 'svg',
+        loop: true,
+        autoplay: true,
+        path: "{{ url_for('static', filename='images/bike.json') }}",
+        rendererSettings: {
+          preserveAspectRatio: 'xMidYMid meet'
+        }
       });
-      setTimeout(() => flash.remove(), 500);
-    }, 3000);
-  });
-</script>
+    }
 
-<script src="{{ url_for('static', filename='script.js') }}"></script>
+    document.querySelectorAll('.flash').forEach(flash => {
+      setTimeout(() => {
+        flash.style.transition = 'opacity 0.5s ease, max-height 0.5s ease, margin 0.5s ease, padding 0.5s ease';
+        flash.style.overflow = 'hidden';
+        flash.style.maxHeight = flash.offsetHeight + 'px';
+        requestAnimationFrame(() => {
+          flash.style.opacity = '0';
+          flash.style.maxHeight = '0';
+          flash.style.marginBottom = '0';
+          flash.style.padding = '0';
+        });
+        setTimeout(() => flash.remove(), 500);
+      }, 3500);
+    });
+  </script>
 </body>
 </html>

@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>MotoRent — Ride Without Limits</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --teal:      #088395;
+      --teal-dark: #09637E;
+      --teal-glow: rgba(8,131,149,0.35);
+      --navy:      #0a1628;
+      --navy2:     #0d1f3c;
+      --navy3:     #071020;
+      --white:     #f0f8fa;
+      --muted:     rgba(255,255,255,0.45);
+      --border:    rgba(8,131,149,0.25);
+    }
+
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--navy3);
+      color: var(--white);
+      overflow-x: hidden;
+    }
+
+    /* ── CURSOR GLOW ── */
+    .cursor-glow {
+      position: fixed; pointer-events: none; z-index: 9999;
+      width: 300px; height: 300px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(8,131,149,0.08) 0%, transparent 70%);
+      transform: translate(-50%, -50%);
+      transition: opacity 0.3s;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      padding: 20px 60px;
+      display: flex; align-items: center; justify-content: space-between;
+      transition: all 0.4s;
+    }
+    nav.scrolled {
+      background: rgba(10,22,40,0.92);
+      backdrop-filter: blur(12px);
+      padding: 14px 60px;
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-brand {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.8rem; letter-spacing: 3px; color: #fff;
+    }
+    .nav-brand span { color: var(--teal); }
+    .nav-links { display: flex; align-items: center; gap: 36px; }
+    .nav-links a {
+      color: var(--muted); font-size: 0.85rem; font-weight: 500;
+      letter-spacing: 0.5px; text-decoration: none;
+      transition: color 0.2s; position: relative;
+    }
+    .nav-links a::after {
+      content: ''; position: absolute; bottom: -3px; left: 0; right: 0;
+      height: 1px; background: var(--teal);
+      transform: scaleX(0); transition: transform 0.25s;
+    }
+    .nav-links a:hover { color: #fff; }
+    .nav-links a:hover::after { transform: scaleX(1); }
+    .nav-cta {
+      background: var(--teal); color: #fff !important;
+      padding: 9px 22px; border-radius: 8px; font-weight: 600 !important;
+      box-shadow: 0 4px 14px var(--teal-glow);
+      transition: all 0.3s !important;
+      position: relative;
+      overflow: hidden;
+    }
+    .nav-cta::after { display: none !important; }
+    .nav-cta::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+      transition: left 0.5s ease;
+    }
+    .nav-cta:hover::before { left: 100%; }
+    .nav-cta:hover { background: var(--teal-dark) !important; transform: translateY(-2px); box-shadow: 0 8px 28px var(--teal-glow) !important; }
+    .nav-cta:active { transform: translateY(0); }
+
+    /* Page transition overlay */
+    .page-transition {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: var(--teal);
+      transform: translateX(100%);
+      transition: transform 0.6s cubic-bezier(0.7, 0, 0.3, 1);
+      z-index: 9999;
+      pointer-events: none;
+    }
+    .page-transition.active {
+      transform: translateX(0);
+    }
+    .page-transition::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
+      animation: shimmer 1s ease-in-out infinite;
+    }
+    @keyframes shimmer {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
+    }
+    .page-transition-text {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: #fff;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 1.2rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      opacity: 0;
+      animation: fadeInTransition 0.8s ease forwards;
+    }
+    @keyframes fadeInTransition {
+      0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+      50% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+      100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    }
+
+    /* ── HERO ── */
+    .hero {
+      min-height: 100vh;
+      display: flex; align-items: center;
+      position: relative; overflow: hidden;
+      padding: 120px 60px 80px;
+    }
+    .hero-bg {
+      position: absolute; inset: 0; z-index: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 70% 50%, rgba(8,131,149,0.12) 0%, transparent 60%),
+        radial-gradient(ellipse 40% 40% at 20% 80%, rgba(6,78,99,0.18) 0%, transparent 55%),
+        linear-gradient(160deg, #0a1628 0%, #071020 50%, #0a1e35 100%);
+    }
+    /* dot grid */
+    .hero-bg::before {
+      content: '';
+      position: absolute; inset: 0;
+      background-image: radial-gradient(circle, rgba(8,131,149,0.15) 1px, transparent 1px);
+      background-size: 36px 36px;
+    }
+    .hero-content {
+      position: relative; z-index: 2;
+      max-width: 650px;
+    }
+    .hero-eyebrow {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(8,131,149,0.12);
+      border: 1px solid var(--border);
+      padding: 6px 14px; border-radius: 20px;
+      font-size: 0.72rem; font-weight: 700; letter-spacing: 2px;
+      text-transform: uppercase; color: var(--teal);
+      margin-bottom: 24px;
+      animation: fadeSlideUp 0.7s ease both;
+    }
+    .hero-eyebrow span { width: 6px; height: 6px; background: var(--teal); border-radius: 50%; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(1.4)} }
+
+    .hero-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(4rem, 8vw, 7rem);
+      line-height: 0.9; letter-spacing: 2px; color: #fff;
+      animation: fadeSlideUp 0.7s 0.1s ease both;
+    }
+    .hero-title .accent { color: var(--teal); display: block; }
+    .hero-sub {
+      margin-top: 24px; font-size: 1.05rem; color: var(--muted);
+      line-height: 1.7; max-width: 480px;
+      animation: fadeSlideUp 0.7s 0.2s ease both;
+    }
+    .hero-actions {
+      display: flex; gap: 14px; margin-top: 40px; flex-wrap: wrap;
+      animation: fadeSlideUp 0.7s 0.3s ease both;
+    }
+    .btn-hero-primary {
+      padding: 15px 36px; background: var(--teal); color: #fff;
+      font-family: 'DM Sans', sans-serif; font-size: 0.9rem; font-weight: 700;
+      letter-spacing: 0.5px; border: none; border-radius: 10px; cursor: pointer;
+      box-shadow: 0 6px 24px var(--teal-glow);
+      transition: all 0.2s; text-decoration: none; display: inline-block;
+    }
+    .btn-hero-primary:hover { background: var(--teal-dark); transform: translateY(-2px); box-shadow: 0 10px 32px var(--teal-glow); }
+    .btn-hero-secondary {
+      padding: 15px 36px; background: transparent; color: rgba(255,255,255,0.75);
+      font-family: 'DM Sans', sans-serif; font-size: 0.9rem; font-weight: 600;
+      letter-spacing: 0.5px; border: 1.5px solid rgba(255,255,255,0.2); border-radius: 10px;
+      cursor: pointer; transition: all 0.2s; text-decoration: none; display: inline-block;
+    }
+    .btn-hero-secondary:hover { border-color: var(--teal); color: #fff; background: rgba(8,131,149,0.08); }
+
+    .hero-stats {
+      display: flex; gap: 40px; margin-top: 56px;
+      animation: fadeSlideUp 0.7s 0.4s ease both;
+    }
+    .hero-stat-val {
+      font-family: 'Bebas Neue', sans-serif; font-size: 2.4rem;
+      color: #fff; letter-spacing: 1px;
+    }
+    .hero-stat-val span { color: var(--teal); }
+    .hero-stat-label { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
+
+    /* floating motorcycle */
+    .hero-moto {
+      position: absolute; right: 4%; top: 50%; transform: translateY(-50%);
+      width: 680px; height: 360px;
+      z-index: 2; animation: motoFloat 4s ease-in-out infinite;
+    }
+    @keyframes motoFloat { 0%,100%{transform:translateY(-50%) rotate(-1deg)} 50%{transform:translateY(calc(-50% - 20px)) rotate(1deg)} }
+    .hero-moto-glow {
+      position: absolute; bottom: -40px; left: 50%;
+      transform: translateX(-50%);
+      width: 360px; height: 40px;
+      background: radial-gradient(ellipse, rgba(8,131,149,0.5) 0%, transparent 70%);
+      border-radius: 50%;
+      animation: glowPulse 4s ease-in-out infinite;
+    }
+    @keyframes glowPulse { 0%,100%{opacity:0.6;transform:translateX(-50%) scaleX(1)} 50%{opacity:1;transform:translateX(-50%) scaleX(1.2)} }
+
+    /* ── MARQUEE ── */
+    .marquee-wrap {
+      background: var(--teal);
+      padding: 14px 0; overflow: hidden;
+      border-top: 1px solid rgba(255,255,255,0.1);
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    .marquee-track {
+      display: flex; gap: 0;
+      animation: marquee 30s linear infinite;
+      width: max-content;
+    }
+    .marquee-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 0 28px;
+      font-family: 'Bebas Neue', sans-serif; font-size: 1rem; letter-spacing: 2px;
+      color: rgba(255,255,255,0.9); white-space: nowrap;
+    }
+    .marquee-dot { width: 5px; height: 5px; background: rgba(255,255,255,0.4); border-radius: 50%; }
+    @keyframes marquee { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+
+    /* ── FEATURES ── */
+    .section { padding: 100px 60px; position: relative; }
+    .section-label {
+      font-size: 0.7rem; font-weight: 700; letter-spacing: 3px; text-transform: uppercase;
+      color: var(--teal); margin-bottom: 12px;
+    }
+    .section-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(2.5rem, 5vw, 4rem); letter-spacing: 1px; color: #fff;
+      line-height: 1; margin-bottom: 16px;
+    }
+    .section-sub { font-size: 0.95rem; color: var(--muted); max-width: 480px; line-height: 1.7; }
+
+    .features-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 56px;
+    }
+    .feat-card {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(8,131,149,0.2);
+      border-radius: 16px; padding: 28px;
+      transition: all 0.3s; position: relative; overflow: hidden;
+    }
+    .feat-card::before {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(8,131,149,0.07) 0%, transparent 60%);
+      opacity: 0; transition: opacity 0.3s;
+    }
+    .feat-card:hover { border-color: rgba(8,131,149,0.5); transform: translateY(-4px); box-shadow: 0 12px 40px rgba(8,131,149,0.15); }
+    .feat-card:hover::before { opacity: 1; }
+    .feat-icon {
+      width: 48px; height: 48px; border-radius: 12px;
+      background: rgba(8,131,149,0.15);
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 20px;
+    }
+    .feat-icon svg { width: 22px; height: 22px; color: var(--teal); }
+    .feat-title { font-size: 1rem; font-weight: 700; color: #fff; margin-bottom: 10px; }
+    .feat-desc { font-size: 0.85rem; color: var(--muted); line-height: 1.6; }
+
+    /* ── HOW IT WORKS ── */
+    .how-section {
+      padding: 100px 60px;
+      background: linear-gradient(180deg, rgba(8,131,149,0.04) 0%, transparent 100%);
+      border-top: 1px solid rgba(8,131,149,0.1);
+      border-bottom: 1px solid rgba(8,131,149,0.1);
+    }
+    .steps-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; margin-top: 60px; position: relative; }
+    .steps-grid::before {
+      content: ''; position: absolute; top: 28px; left: 12.5%; right: 12.5%;
+      height: 1px; background: linear-gradient(90deg, transparent, var(--teal), transparent);
+      opacity: 0.3;
+    }
+    .step-card { text-align: center; padding: 0 20px; position: relative; }
+    .step-num {
+      width: 56px; height: 56px; border-radius: 50%;
+      background: var(--navy2); border: 1.5px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Bebas Neue', sans-serif; font-size: 1.5rem; color: var(--teal);
+      margin: 0 auto 20px; position: relative; z-index: 1;
+    }
+    .step-title { font-size: 0.95rem; font-weight: 700; color: #fff; margin-bottom: 8px; }
+    .step-desc { font-size: 0.82rem; color: var(--muted); line-height: 1.6; }
+
+    /* ── FLEET PREVIEW (CAROUSEL) ── */
+    .fleet-section { padding: 100px 60px; }
+    .fleet-section-header {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 16px; margin-top: 18px; flex-wrap: wrap;
+    }
+    .fleet-section-header .fleet-label {
+      color: var(--muted); font-size: 0.95rem;
+    }
+    .fleet-section-header .fleet-actions {
+      display: flex; gap: 10px;
+      flex-wrap: wrap;
+    }
+    .fleet-button {
+      display: inline-flex; align-items: center; justify-content: center;
+      padding: 10px 18px; border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.04); color: #fff;
+      text-decoration: none; font-size: 0.88rem; transition: all 0.25s;
+    }
+    .fleet-button:hover { background: rgba(8,131,149,0.16); border-color: rgba(8,131,149,0.4); }
+    .fleet-button.active { background: var(--teal); border-color: var(--teal); color: #071020; }
+    .fleet-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 20px; margin-top: 56px;
+    }
+    .fleet-carousel-wrapper {
+      position: relative; margin-top: 56px;
+      overflow: hidden; border-radius: 20px;
+    }
+    .fleet-carousel-track {
+      display: flex; gap: 20px;
+      transition: transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      padding-bottom: 20px;
+    }
+    .fleet-card {
+      background: rgba(255,255,255,0.03); border: 1px solid rgba(8,131,149,0.18);
+      border-radius: 16px; overflow: hidden;
+      flex-shrink: 0; width: 100%;
+      transition: all 0.3s; cursor: pointer;
+    }
+    .fleet-card:hover { border-color: rgba(8,131,149,0.5); transform: translateY(-4px); box-shadow: 0 16px 48px rgba(8,131,149,0.15); }
+    .fleet-img {
+      height: 220px;
+      background: linear-gradient(135deg, rgba(8,131,149,0.1), rgba(9,99,126,0.15));
+      display: flex; align-items: center; justify-content: center;
+      overflow: hidden;
+    }
+    .fleet-img img { width: 100%; height: 100%; object-fit: cover; }
+    .fleet-body { padding: 24px; }
+    .fleet-name { font-size: 1.2rem; font-weight: 700; color: #fff; margin-bottom: 6px; }
+    .fleet-meta { font-size: 0.82rem; color: var(--muted); margin-bottom: 16px; }
+    .fleet-footer { display: flex; justify-content: space-between; align-items: center; }
+    .fleet-price { font-size: 1.2rem; font-weight: 700; color: var(--teal); }
+    .fleet-price span { font-size: 0.78rem; font-weight: 400; color: var(--muted); }
+    .fleet-badge {
+      padding: 6px 14px; border-radius: 20px; font-size: 0.7rem; font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+    .fleet-badge.badge-available {
+      background: rgba(34,197,94,0.12);
+      border: 1px solid rgba(34,197,94,0.3);
+      color: #22c55e;
+    }
+    .fleet-badge.badge-unavailable {
+      background: rgba(239,68,68,0.12);
+      border: 1px solid rgba(239,68,68,0.3);
+      color: #dc2626;
+    }
+    
+    /* Carousel Controls */
+    .fleet-carousel-controls {
+      position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+      display: flex; gap: 12px; z-index: 10;
+    }
+    .carousel-dot {
+      width: 12px; height: 12px; border-radius: 50%;
+      background: rgba(255,255,255,0.3); border: 2px solid transparent;
+      cursor: pointer; transition: all 0.3s;
+    }
+    .carousel-dot.active { background: var(--teal); border-color: #fff; width: 32px; border-radius: 6px; }
+    
+    .carousel-nav {
+      position: absolute; top: 50%; transform: translateY(-50%);
+      width: 44px; height: 44px;
+      background: rgba(8,131,149,0.2); border: 1px solid rgba(8,131,149,0.4);
+      border-radius: 10px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; transition: all 0.3s; z-index: 10;
+    }
+    .carousel-nav:hover { background: rgba(8,131,149,0.4); border-color: var(--teal); }
+    .carousel-nav.prev { left: 20px; }
+    .carousel-nav.next { right: 20px; }
+
+    /* ── ABOUT ── */
+    .about-section {
+      padding: 100px 60px;
+      background: rgba(8,131,149,0.03);
+      border-top: 1px solid rgba(8,131,149,0.1);
+    }
+    .about-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center; margin-top: 0; }
+    .about-visual {
+      position: relative;
+    }
+    .about-card-stack { position: relative; height: 320px; }
+    .acard {
+      position: absolute; border-radius: 16px; padding: 24px;
+      border: 1px solid rgba(8,131,149,0.25);
+    }
+    .acard-1 {
+      background: rgba(8,131,149,0.08);
+      width: 260px; top: 0; left: 0;
+      animation: cardFloat1 5s ease-in-out infinite;
+    }
+    .acard-2 {
+      background: rgba(9,99,126,0.12);
+      width: 240px; bottom: 0; right: 0;
+      animation: cardFloat2 5s ease-in-out infinite;
+    }
+    @keyframes cardFloat1 { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+    @keyframes cardFloat2 { 0%,100%{transform:translateY(0)} 50%{transform:translateY(10px)} }
+    .acard-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 2px; color: var(--teal); margin-bottom: 10px; font-weight: 700; }
+    .acard-val { font-family: 'Bebas Neue', sans-serif; font-size: 2.5rem; color: #fff; line-height: 1; }
+    .acard-sub { font-size: 0.78rem; color: var(--muted); margin-top: 6px; }
+    .about-list { margin-top: 28px; display: flex; flex-direction: column; gap: 16px; }
+    .about-item { display: flex; gap: 14px; align-items: flex-start; }
+    .about-check {
+      width: 24px; height: 24px; border-radius: 6px;
+      background: rgba(8,131,149,0.15); border: 1px solid rgba(8,131,149,0.4);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; margin-top: 1px;
+    }
+    .about-check svg { width: 12px; height: 12px; color: var(--teal); }
+    .about-item-text { font-size: 0.88rem; color: rgba(255,255,255,0.72); line-height: 1.6; }
+    .about-item-title { font-weight: 700; color: #fff; margin-bottom: 3px; font-size: 0.9rem; }
+
+    /* ── TESTIMONIALS ── */
+    .testimonials-section { padding: 100px 60px; }
+    .testi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 56px; }
+    .testi-card {
+      background: rgba(255,255,255,0.03); border: 1px solid rgba(8,131,149,0.15);
+      border-radius: 16px; padding: 28px;
+      transition: border-color 0.3s;
+    }
+    .testi-card:hover { border-color: rgba(8,131,149,0.4); }
+    .testi-stars { color: var(--teal); font-size: 0.85rem; margin-bottom: 16px; letter-spacing: 2px; }
+    .testi-text { font-size: 0.9rem; color: rgba(255,255,255,0.7); line-height: 1.7; margin-bottom: 20px; font-style: italic; }
+    .testi-author { display: flex; align-items: center; gap: 12px; }
+    .testi-avatar {
+      width: 38px; height: 38px; border-radius: 10px;
+      background: rgba(8,131,149,0.2); border: 1px solid rgba(8,131,149,0.3);
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Bebas Neue', sans-serif; font-size: 1.1rem; color: var(--teal);
+    }
+    .testi-name { font-size: 0.85rem; font-weight: 700; color: #fff; }
+    .testi-role { font-size: 0.72rem; color: var(--muted); }
+
+    /* ── CTA BANNER ── */
+    .cta-section {
+      margin: 0 60px 100px;
+      background: linear-gradient(135deg, #09637E 0%, #088395 50%, #0ea5e9 100%);
+      border-radius: 24px; padding: 72px 80px;
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 40px; overflow: hidden; position: relative;
+    }
+    .cta-section::before {
+      content: ''; position: absolute; inset: 0;
+      background-image: radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px);
+      background-size: 24px 24px;
+    }
+    .cta-title {
+      font-family: 'Bebas Neue', sans-serif; font-size: clamp(2.2rem, 4vw, 3.2rem);
+      letter-spacing: 1px; color: #fff; line-height: 1; position: relative; z-index: 1;
+    }
+    .cta-sub { font-size: 0.9rem; color: rgba(255,255,255,0.75); margin-top: 12px; line-height: 1.6; max-width: 360px; position: relative; z-index: 1; }
+    .cta-actions { display: flex; gap: 12px; flex-shrink: 0; position: relative; z-index: 1; }
+    .btn-cta-white {
+      padding: 14px 32px; background: #fff; color: var(--teal-dark);
+      font-family: 'DM Sans', sans-serif; font-size: 0.88rem; font-weight: 700;
+      border: none; border-radius: 10px; cursor: pointer; transition: all 0.2s;
+      text-decoration: none; display: inline-block; letter-spacing: 0.3px;
+    }
+    .btn-cta-white:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.2); }
+    .btn-cta-outline {
+      padding: 14px 32px; background: transparent; color: #fff;
+      font-family: 'DM Sans', sans-serif; font-size: 0.88rem; font-weight: 600;
+      border: 1.5px solid rgba(255,255,255,0.4); border-radius: 10px;
+      cursor: pointer; transition: all 0.2s; text-decoration: none; display: inline-block;
+    }
+    .btn-cta-outline:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.7); }
+
+    /* ── FOOTER ── */
+    footer {
+      border-top: 1px solid rgba(8,131,149,0.15);
+      padding: 56px 60px 32px;
+    }
+    .footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 48px; margin-bottom: 48px; }
+    .footer-brand-name {
+      font-family: 'Bebas Neue', sans-serif; font-size: 1.8rem; letter-spacing: 3px; color: #fff; margin-bottom: 12px;
+    }
+    .footer-brand-name span { color: var(--teal); }
+    .footer-brand-desc { font-size: 0.83rem; color: var(--muted); line-height: 1.7; max-width: 260px; }
+    .footer-col-title { font-size: 0.68rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--teal); margin-bottom: 16px; }
+    .footer-links { display: flex; flex-direction: column; gap: 10px; }
+    .footer-links a { font-size: 0.83rem; color: var(--muted); text-decoration: none; transition: color 0.2s; }
+    .footer-links a:hover { color: #fff; }
+    .footer-bottom { border-top: 1px solid rgba(255,255,255,0.07); padding-top: 24px; display: flex; justify-content: center; align-items: center; }
+    .footer-copy { font-size: 0.78rem; color: rgba(255,255,255,0.25); text-align: center; }
+    .footer-chips { display: flex; gap: 10px; }
+    .footer-chip {
+      padding: 4px 12px; border-radius: 20px; font-size: 0.68rem; font-weight: 600;
+      background: rgba(8,131,149,0.1); border: 1px solid rgba(8,131,149,0.25); color: var(--teal);
+    }
+
+    @keyframes fadeSlideUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── AUTH OVERLAY (slide-in panel) ── */
+    .auth-overlay {
+      position: fixed; inset: 0; z-index: 500;
+      display: flex; pointer-events: none;
+    }
+    .auth-backdrop {
+      position: absolute; inset: 0;
+      background: rgba(5,12,25,0.75); backdrop-filter: blur(6px);
+      opacity: 0; transition: opacity 0.45s ease;
+    }
+    .auth-panel {
+      position: absolute; top: 0; right: 0; bottom: 0;
+      width: 480px; max-width: 100%;
+      background: #0d1f3c;
+      border-left: 1px solid rgba(8,131,149,0.25);
+      transform: translateX(100%);
+      transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+      overflow-y: auto; display: flex; flex-direction: column;
+    }
+    .auth-overlay.open { pointer-events: all; }
+    .auth-overlay.open .auth-backdrop { opacity: 1; }
+    .auth-overlay.open .auth-panel { transform: translateX(0); }
+
+    .auth-panel-header {
+      padding: 32px 36px 0;
+      display: flex; align-items: center; justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .auth-panel-brand {
+      font-family: 'Bebas Neue', sans-serif; font-size: 1.5rem; letter-spacing: 2px; color: #fff;
+    }
+    .auth-panel-brand span { color: var(--teal); }
+    .auth-close {
+      width: 36px; height: 36px; border-radius: 8px;
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+      color: rgba(255,255,255,0.5); font-size: 1.1rem; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.2s;
+    }
+    .auth-close:hover { background: rgba(239,68,68,0.12); border-color: rgba(239,68,68,0.3); color: #fca5a5; }
+
+    .auth-panel-body { padding: 28px 36px 36px; flex: 1; }
+
+    .auth-welcome-text h2 {
+      font-family: 'Bebas Neue', sans-serif; font-size: 2rem; letter-spacing: 2px; color: #fff; margin-bottom: 4px;
+    }
+    .auth-welcome-text p { font-size: 0.85rem; color: rgba(255,255,255,0.45); }
+
+    /* tabs */
+    .auth-tabs-row {
+      display: flex; gap: 0;
+      background: rgba(255,255,255,0.05); border-radius: 10px; padding: 4px;
+      margin: 24px 0;
+    }
+    .auth-tab-btn {
+      flex: 1; padding: 9px 0; border: none; background: transparent;
+      font-family: 'DM Sans', sans-serif; font-size: 0.83rem; font-weight: 600;
+      color: rgba(255,255,255,0.4); border-radius: 7px; cursor: pointer; transition: all 0.22s;
+    }
+    .auth-tab-btn.active { background: rgba(8,131,149,0.25); color: var(--teal); }
+
+    .auth-form-panel { display: none; }
+    .auth-form-panel.active { display: block; }
+
+    .af-group { margin-bottom: 16px; }
+    .af-label {
+      display: block; font-size: 0.7rem; font-weight: 700; letter-spacing: 1px;
+      text-transform: uppercase; color: rgba(255,255,255,0.35); margin-bottom: 7px;
+    }
+    .af-input {
+      width: 100%; padding: 11px 14px; border-radius: 9px;
+      background: rgba(255,255,255,0.05); border: 1.5px solid rgba(255,255,255,0.1);
+      color: #fff; font-family: 'DM Sans', sans-serif; font-size: 0.88rem;
+      outline: none; transition: border-color 0.2s, background 0.2s;
+      appearance: none;
+    }
+    .af-input:focus { border-color: var(--teal); background: rgba(8,131,149,0.08); }
+    .af-input::placeholder { color: rgba(255,255,255,0.2); }
+    textarea.af-input { resize: vertical; min-height: 64px; }
+
+    .af-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .af-section-label {
+      font-size: 0.65rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
+      color: var(--teal); margin: 20px 0 14px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .af-section-label::after { content: ''; flex: 1; height: 1px; background: rgba(8,131,149,0.3); }
+
+    .btn-auth-submit {
+      width: 100%; padding: 13px; border: none; border-radius: 10px; cursor: pointer;
+      font-family: 'DM Sans', sans-serif; font-size: 0.92rem; font-weight: 700;
+      background: linear-gradient(135deg, #088395, #0ea5e9); color: #fff;
+      box-shadow: 0 4px 18px rgba(8,131,149,0.4); margin-top: 8px;
+      transition: all 0.2s; letter-spacing: 0.3px;
+    }
+    .btn-auth-submit:hover { transform: translateY(-1px); box-shadow: 0 8px 28px rgba(8,131,149,0.5); }
+    .btn-auth-submit:active { transform: translateY(0); }
+
+    .auth-footer-note { font-size: 0.75rem; color: rgba(255,255,255,0.3); text-align: center; margin-top: 14px; }
+
+    /* register scroll */
+    #reg-form-inner { max-height: 58vh; overflow-y: auto; padding-right: 4px; }
+    #reg-form-inner::-webkit-scrollbar { width: 3px; }
+    #reg-form-inner::-webkit-scrollbar-thumb { background: rgba(8,131,149,0.3); border-radius: 4px; }
+
+    /* flash */
+    .auth-flash {
+      padding: 10px 14px; border-radius: 8px; font-size: 0.82rem; margin-bottom: 14px;
+      border-left: 3px solid transparent;
+    }
+    .auth-flash.error { background: rgba(239,68,68,0.1); border-color: #ef4444; color: #fca5a5; }
+    .auth-flash.success { background: rgba(34,197,94,0.1); border-color: #22c55e; color: #86efac; }
+
+    @media (max-width: 1024px) {
+      .hero-moto { display: none; }
+      .features-grid, .fleet-grid, .testi-grid { grid-template-columns: 1fr 1fr; }
+      .steps-grid { grid-template-columns: 1fr 1fr; gap: 24px; }
+      .steps-grid::before { display: none; }
+      .about-grid { grid-template-columns: 1fr; }
+      .footer-grid { grid-template-columns: 1fr 1fr; gap: 32px; }
+      .cta-section { flex-direction: column; padding: 52px 40px; text-align: center; }
+      .cta-actions { justify-content: center; }
+    }
+    @media (max-width: 768px) {
+      nav { padding: 16px 24px; }
+      nav.scrolled { padding: 12px 24px; }
+      .nav-links { display: none; }
+      .hero, .section, .fleet-section, .testimonials-section, .how-section, .about-section { padding: 80px 24px; }
+      .features-grid, .fleet-grid, .testi-grid, .steps-grid { grid-template-columns: 1fr; }
+      .cta-section { margin: 0 24px 80px; padding: 40px 28px; }
+      .footer-grid { grid-template-columns: 1fr; }
+      footer { padding: 40px 24px 24px; }
+      .auth-panel { width: 100%; }
+      .hero-stats { gap: 24px; flex-wrap: wrap; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Cursor glow -->
+<div class="cursor-glow" id="cursorGlow"></div>
+
+<!-- ══ NAVBAR ══ -->
+<nav id="mainNav">
+  <div class="nav-brand">Moto<span>Rent</span></div>
+  <div class="nav-links">
+    <a href="#features">Features</a>
+    <a href="#fleet">Motorcycles</a>
+    <a href="#how">How It Works</a>
+    <a href="#about">About Us</a>
+    <a href="{{ url_for('login') }}" class="nav-cta">Sign In</a>
+  </div>
+</nav>
+
+<!-- ══ HERO ══ -->
+<section class="hero" id="home">
+  <div class="hero-bg"></div>
+
+  <div class="hero-content">
+    <div class="hero-eyebrow">
+      <span></span> Philippines
+    </div>
+    <h1 class="hero-title">
+      Ride<br>Without<br><span class="accent">Limits.</span>
+    </h1>
+    <div class="hero-stats">
+      <div>
+        <div class="hero-stat-val">80<span>+</span></div>
+        <div class="hero-stat-label">Motorcycles</div>
+      </div>
+      <div>
+        <div class="hero-stat-val">3<span>k+</span></div>
+        <div class="hero-stat-label">Happy Riders</div>
+      </div>
+      <div>
+        <div class="hero-stat-val">5<span></span></div>
+        <div class="hero-stat-label">Branches</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Floating motorcycle -->
+  <div id="heroLottie" class="hero-moto"></div>
+  <div class="hero-moto-glow"></div>
+</section>
+
+
+<!-- ══ FEATURES ══ -->
+<section class="section" id="features">
+  <h2 class="section-title">EVERYTHING YOU<br>NEED TO KNOW</h2>
+
+  <div class="features-grid">
+    <div class="feat-card">
+      <div class="feat-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="17" r="3"/><circle cx="18" cy="17" r="3"/><path d="M9 17h6M3 17H1v-4l5-5h7l3 4h2l2 2v3h-2"/></svg>
+      </div>
+      <div class="feat-title">Instant Rental</div>
+      <div class="feat-desc">Browse available motorcycles, choose your dates, and get approved fast. As easy as ordering food online.</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+      </div>
+      <div class="feat-title">Buy a Motorcycle</div>
+      <div class="feat-desc">Purchase brand-new or pre-owned units with cash or flexible installment plans.</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+      </div>
+      <div class="feat-title">Installment Plans</div>
+      <div class="feat-desc">Own your dream bike with down payment as low as 20%</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>
+      </div>
+      <div class="feat-title">Parts Shop</div>
+      <div class="feat-desc">Genuine and aftermarket parts available for order.</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      </div>
+      <div class="feat-title">Multi-Branch</div>
+      <div class="feat-desc">Multiple branches across the metro. Find the nearest one to you!</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+      </div>
+      <div class="feat-title">Customer Dashboard</div>
+      <div class="feat-desc">Track all your rentals, purchases, installment progress, and parts orders.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ HOW IT WORKS ══ -->
+<section class="how-section" id="how">
+  <h2 class="section-title">HOW IT WORKS</h2>
+
+  <div class="steps-grid">
+    <div class="step-card">
+      <div class="step-num">01</div>
+      <div class="step-title">Create Account</div>
+      <div class="step-desc">Register with your email, driver's license, and basic details. Takes less than 2 minutes.</div>
+    </div>
+    <div class="step-card">
+      <div class="step-num">02</div>
+      <div class="step-title">Browse & Choose</div>
+      <div class="step-desc">Filter by type, price, and availability. View specs, photos, and daily rates for each unit.</div>
+    </div>
+    <div class="step-card">
+      <div class="step-num">03</div>
+      <div class="step-title">Submit Request</div>
+      <div class="step-desc">Book your rental, purchase, or parts order. Our staff processes requests quickly.</div>
+    </div>
+    <div class="step-card">
+      <div class="step-num">04</div>
+      <div class="step-title">Ride & Enjoy</div>
+      <div class="step-desc">Once approved, pick up your motorcycle or receive parts at your chosen branch.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ FLEET PREVIEW (GRID - NO CAROUSEL) ══ -->
+<section class="fleet-section" id="fleet">
+  <h2 class="section-title">CHOOSE YOUR RIDE</h2>
+  <div class="fleet-section-header">
+    <div class="fleet-actions">
+      <a href="#fleet" class="fleet-button active">Top 3</a>
+    </div>
+  </div>
+
+  <div class="fleet-grid">
+
+    {% if featured_motors %}
+      {% for motor in featured_motors %}
+        {% if loop.index <= 3 %}
+        {% set img_name = motor.brand ~ ' ' ~ motor.model %}
+        <div class="fleet-card">
+          <div class="fleet-img">
+            <img
+              src="{{ url_for('static', filename='images/' ~ img_name ~ '.png') }}"
+              alt="{{ motor.brand }} {{ motor.model }}"
+              onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+              style="width:100%; height:100%; object-fit:cover;"
+            />
+            <div style="display:none; width:100%; height:100%; align-items:center; justify-content:center; background:linear-gradient(135deg, rgba(8,131,149,0.1), rgba(9,99,126,0.15));">
+              <svg viewBox="0 0 200 100" fill="none" style="width:110px;">
+                <circle cx="45" cy="72" r="24" stroke="#088395" stroke-width="4"/>
+                <circle cx="155" cy="72" r="24" stroke="#088395" stroke-width="4"/>
+                <path d="M69 72 L88 45 L126 40 L148 52 L155 72" stroke="#088395" stroke-width="4"/>
+              </svg>
+            </div>
+          </div>
+
+          <div class="fleet-body">
+            <div class="fleet-name">{{ motor.brand }} {{ motor.model }}</div>
+            <div class="fleet-meta">{{ motor.year }} · {{ motor.type }}</div>
+
+            <div class="fleet-footer">
+              <div class="fleet-price">₱{{ motor.rate_per_day }}<span>/day</span></div>
+
+              <div class="fleet-badge"
+                style="{% if motor.status == 'Available' %}
+                  background:rgba(34,197,94,0.12);
+                  border-color:rgba(34,197,94,0.3);
+                  color:#22c55e;
+                {% else %}
+                  background:rgba(239,68,68,0.12);
+                  border-color:rgba(239,68,68,0.3);
+                  color:#dc2626;
+                {% endif %}">
+                {{ motor.status }}
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+      {% endfor %}
+    {% else %}
+      <div class="fleet-card">
+        <div class="fleet-body">
+          <div class="fleet-name">No motorcycles yet</div>
+          <div class="fleet-meta">Add data to database</div>
+        </div>
+      </div>
+    {% endif %}
+
+  </div>
+</section>
+
+<!-- ══ ABOUT ══ -->
+<section class="about-section" id="about">
+  <div class="about-grid">
+    <div class="about-visual">
+      <div class="about-card-stack">
+        <div class="acard acard-1">
+          <div class="acard-label">Active Rentals</div>
+          <div class="acard-val">124</div>
+        </div>
+        <div class="acard acard-2">
+          <div class="acard-label">Customer Satisfaction</div>
+          <div class="acard-val">98<span style="color:var(--teal);font-size:1.5rem;">%</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="about-content">
+      <div class="section-label">About Us</div>
+      <h2 class="section-title">BUILT FOR<br>FILIPINO RIDERS</h2>
+      <div class="about-list">
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ TESTIMONIALS ══ -->
+<section class="testimonials-section" id="testimonials">
+  <div style="text-align:center; margin-bottom: 0;">
+    <h2 class="section-title" style="text-align:center;">WHAT RIDERS SAY</h2>
+  </div>
+  <div class="testi-grid">
+    <div class="testi-card">
+      <div class="testi-stars">★★★★★</div>
+      <div class="testi-text">"Rented a Honda ADV 160 for a Cebu trip"</div>
+      <div class="testi-author">
+        <div class="testi-avatar">L</div>
+        <div>
+          <div class="testi-name">Larry Fernandez</div>
+          <div class="testi-role">Regular Customer</div>
+        </div>
+      </div>
+    </div>
+    <div class="testi-card">
+      <div class="testi-stars">★★★★★</div>
+      <div class="testi-text">"The installment plan was easy. The admin was super helpful."</div>
+      <div class="testi-author">
+        <div class="testi-avatar">M</div>
+        <div>
+          <div class="testi-name">Mark Go Remitar</div>
+          <div class="testi-role">Motorcycle Owner</div>
+        </div>
+      </div>
+    </div>
+    <div class="testi-card">
+      <div class="testi-stars">★★★★★</div>
+      <div class="testi-text">"Ordered brake pads and the price was better than the nearby shop."</div>
+      <div class="testi-author">
+        <div class="testi-avatar">R</div>
+        <div>
+          <div class="testi-name">Ranz Junnel Lapis</div>
+          <div class="testi-role">Parts Customer</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ══ FOOTER ══ -->
+<footer>
+  <div class="footer-grid">
+    <div>
+      <div class="footer-brand-name">Moto<span>Rent</span></div>
+      <div class="footer-brand-desc">Philippines' motorcycle rental, sales, and parts.</div>
+      <div style="margin-top:20px;display:flex;gap:10px;">
+        <div class="footer-chip">🏍️ Rent</div>
+        <div class="footer-chip">🛒 Buy</div>
+        <div class="footer-chip">🔧 Parts</div>
+      </div>
+    </div>
+    <div>
+      <div class="footer-col-title">Services</div>
+      <div class="footer-links">
+        <a href="#">Motorcycle Rental</a>
+        <a href="#">Buy a Motorcycle</a>
+        <a href="#">Installment Plans</a>
+        <a href="#">Parts & Accessories</a>
+      </div>
+    </div>
+    <div>
+      <div class="footer-col-title">Company</div>
+      <div class="footer-links">
+        <a href="#">About Us</a>
+        <a href="#">Our Branches</a>
+        <a href="#">Contact</a>
+      </div>
+    </div>
+    <div>
+      <div class="footer-col-title">Support</div>
+      <div class="footer-links">
+        <a href="#">FAQs</a>
+        <a href="#">Rental Policy</a>
+        <a href="#">Privacy Policy</a>
+        <a href="#">Terms of Service</a>
+      </div>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <div class="footer-copy">© 2026 MotoRent. All rights reserved.</div>
+    </div>
+  </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.10.2/lottie.min.js"></script>
+<script>
+  // ── Hero Lottie animation ──
+  if (window.lottie) {
+    lottie.loadAnimation({
+      container: document.getElementById('heroLottie'),
+      renderer: 'svg',
+      loop: true,
+      autoplay: true,
+      path: '{{ url_for('static', filename='images/bike.json') }}',
+      rendererSettings: {
+        preserveAspectRatio: 'xMidYMid meet'
+      }
+    });
+  }
+
+  // ── Cursor glow ──
+  const glow = document.getElementById('cursorGlow');
+  document.addEventListener('mousemove', e => {
+    glow.style.left = e.clientX + 'px';
+    glow.style.top  = e.clientY + 'px';
+  });
+
+  // ── Navbar scroll ──
+  const nav = document.getElementById('mainNav');
+  window.addEventListener('scroll', () => {
+    nav.classList.toggle('scrolled', window.scrollY > 40);
+  });
+
+  // ── Scroll reveal ──
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.style.opacity = '1';
+        entry.target.style.transform = 'translateY(0)';
+      }
+    });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll('.feat-card, .fleet-card, .testi-card, .step-card').forEach(el => {
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(28px)';
+    el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+    observer.observe(el);
+  });
+
+</script>
+</body>
+</html>

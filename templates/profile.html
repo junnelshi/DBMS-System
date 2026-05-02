@@ -14,12 +14,34 @@
       </div>
       <div class="profile-name">{{ session.get('user_name') }}</div>
       <div class="profile-idno">
-        {% if session.get('role') == 'admin' %}
-          Administrator
+        {% if session.get('role') == 'superadmin' %}
+          <span style="background:rgba(124,58,237,0.12);color:#7c3aed;
+                       padding:3px 10px;border-radius:20px;font-size:0.72rem;font-weight:700;">
+            ⭐ Super Admin
+          </span>
+        {% elif session.get('role') == 'admin' %}
+          <span style="background:rgba(8,131,149,0.12);color:var(--accent);
+                       padding:3px 10px;border-radius:20px;font-size:0.72rem;font-weight:700;">
+            🔑 Administrator
+          </span>
         {% elif customer %}
           {{ customer.email }}
         {% endif %}
       </div>
+
+      <!-- Branch info for branch admins -->
+      {% if session.get('branch_name') %}
+      <div style="margin-top:12px;padding:8px 12px;background:rgba(8,131,149,0.08);
+                  border:1px solid rgba(8,131,149,0.2);border-radius:8px;
+                  font-size:0.78rem;color:var(--accent);text-align:center;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             style="width:12px;height:12px;display:inline-block;vertical-align:middle;margin-right:4px;">
+          <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+          <polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+        {{ session.get('branch_name') }}
+      </div>
+      {% endif %}
 
       {% if customer %}
       <div class="profile-detail">
@@ -46,6 +68,37 @@
       </div>
       {% endif %}
     </div>
+
+    <!-- Quick nav for admin -->
+    {% if session.get('role') in ['admin', 'superadmin'] %}
+    <div class="panel" style="margin-top:16px;">
+      <div class="panel-header">
+        <div class="panel-title" style="font-size:0.78rem;">QUICK ACCESS</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <a href="{{ url_for('dashboard') }}" class="btn btn-outline btn-sm" style="text-align:left;">
+          📊 Dashboard
+        </a>
+        <a href="{{ url_for('motors') }}" class="btn btn-outline btn-sm" style="text-align:left;">
+          🏍️ Motors
+        </a>
+        <a href="{{ url_for('sales') }}" class="btn btn-outline btn-sm" style="text-align:left;">
+          🛒 Sales
+        </a>
+        <a href="{{ url_for('installments') }}" class="btn btn-outline btn-sm" style="text-align:left;">
+          💳 Installments
+        </a>
+        <a href="{{ url_for('parts') }}" class="btn btn-outline btn-sm" style="text-align:left;">
+          🔧 Parts Shop
+        </a>
+        {% if session.get('role') == 'superadmin' %}
+        <a href="{{ url_for('branches') }}" class="btn btn-outline btn-sm" style="text-align:left;">
+          🏢 Branches
+        </a>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
   </div>
 
   <!-- RIGHT -->
@@ -76,15 +129,58 @@
       </form>
     </div>
 
+    <!-- Admin info panel -->
+    {% if session.get('role') in ['admin', 'superadmin'] %}
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">SYSTEM INFO</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;
+                    padding:10px 12px;background:var(--surface3);border-radius:8px;">
+          <span style="font-size:0.82rem;color:var(--muted);">Role</span>
+          <span style="font-size:0.82rem;font-weight:600;
+                       color:{% if session.get('role') == 'superadmin' %}#7c3aed{% else %}var(--accent){% endif %};">
+            {{ 'Super Admin' if session.get('role') == 'superadmin' else 'Branch Admin' }}
+          </span>
+        </div>
+        {% if session.get('branch_name') %}
+        <div style="display:flex;justify-content:space-between;align-items:center;
+                    padding:10px 12px;background:var(--surface3);border-radius:8px;">
+          <span style="font-size:0.82rem;color:var(--muted);">Branch</span>
+          <span style="font-size:0.82rem;font-weight:600;color:var(--accent);">
+            {{ session.get('branch_name') }}
+          </span>
+        </div>
+        {% else %}
+        <div style="display:flex;justify-content:space-between;align-items:center;
+                    padding:10px 12px;background:var(--surface3);border-radius:8px;">
+          <span style="font-size:0.82rem;color:var(--muted);">Access</span>
+          <span style="font-size:0.82rem;font-weight:600;color:#7c3aed;">All Branches</span>
+        </div>
+        {% endif %}
+        <div style="display:flex;justify-content:space-between;align-items:center;
+                    padding:10px 12px;background:var(--surface3);border-radius:8px;">
+          <span style="font-size:0.82rem;color:var(--muted);">Email</span>
+          <span style="font-size:0.82rem;">{{ session.get('user_email', '—') }}</span>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
     {% if session.get('role') == 'customer' %}
     <div class="panel">
       <div class="panel-header">
-        <div class="panel-title">MY RENTAL HISTORY</div>
-        <a href="{{ url_for('rentals') }}" class="panel-action">View All →</a>
+        <div class="panel-title">MY ACTIVITY</div>
       </div>
-      <p style="color:var(--muted);font-size:0.85rem;">
-        View and manage all your rental bookings in the Rentals section.
+      <p style="color:var(--muted);font-size:0.85rem;margin-bottom:12px;">
+        View and manage all your bookings, purchases, and installments.
       </p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <a href="{{ url_for('portal') }}?tab=myrentals" class="btn btn-outline btn-sm">My Rentals</a>
+        <a href="{{ url_for('portal') }}?tab=myorders"  class="btn btn-outline btn-sm">My Orders</a>
+        <a href="{{ url_for('portal') }}?tab=installments" class="btn btn-outline btn-sm">Installments</a>
+      </div>
     </div>
     {% endif %}
 

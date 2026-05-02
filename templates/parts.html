@@ -1,0 +1,321 @@
+{% extends "base.html" %}
+{% block title %}Parts Shop{% endblock %}
+{% block page_title %}PARTS SHOP{% endblock %}
+
+{% block topbar_actions %}
+  <button class="btn btn-primary" onclick="openAddPart()">+ Add Part</button>
+{% endblock %}
+
+{% block content %}
+
+<!-- SUMMARY ROW -->
+<div class="summary-row">
+  {% set total_parts    = parts | length %}
+  {% set low_stock      = parts | selectattr('stock', 'lt', 5) | list | length %}
+  {% set total_orders   = orders | length %}
+  {% set pending_orders = orders | selectattr('status', 'equalto', 'Pending') | list | length %}
+
+  <div class="summary-card">
+    <div class="summary-label">Total Parts</div>
+    <div class="summary-value">{{ total_parts }}</div>
+  </div>
+  <div class="summary-card">
+    <div class="summary-label">Low Stock</div>
+    <div class="summary-value" style="color:#dc2626;">{{ low_stock }}</div>
+  </div>
+  <div class="summary-card">
+    <div class="summary-label">Total Orders</div>
+    <div class="summary-value">{{ total_orders }}</div>
+  </div>
+  <div class="summary-card">
+    <div class="summary-label">Pending Orders</div>
+    <div class="summary-value" style="color:#a16207;">{{ pending_orders }}</div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="parts-tabs">
+  <button class="parts-tab active" onclick="showPartsTab('inventory')" id="ptab-inventory">Inventory</button>
+  <button class="parts-tab" onclick="showPartsTab('orders')" id="ptab-orders">
+    Orders
+    {% if pending_orders > 0 %}
+    <span style="background:#fef9c3;color:#a16207;font-size:0.65rem;font-weight:700;padding:2px 7px;border-radius:20px;margin-left:6px;">{{ pending_orders }}</span>
+    {% endif %}
+  </button>
+</div>
+
+<!-- ── INVENTORY TAB ── -->
+<div id="ppane-inventory">
+  <div class="panel">
+    <div class="panel-header">
+      <div class="panel-title">PARTS INVENTORY</div>
+      <input class="filter-input" id="part-search"
+             placeholder="Search part name, brand..."
+             oninput="filterPartRows()" style="width:240px;"/>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Part Name</th>
+            <th>Brand</th>
+            <th>Category</th>
+            <th>Price</th>
+            <th>Stock</th>
+            <th>Compatible With</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="parts-tbody">
+          {% for p in parts %}
+          <tr data-name="{{ p.name }}" data-brand="{{ p.brand }}">
+            <td style="color:var(--muted2);">{{ loop.index }}</td>
+            <td><strong>{{ p.name }}</strong></td>
+            <td style="font-size:0.82rem;">{{ p.brand }}</td>
+            <td>
+              <span class="tag">{{ p.category }}</span>
+            </td>
+            <td style="font-weight:700;color:var(--accent);">&#8369;{{ '{:,.2f}'.format(p.price) }}</td>
+            <td>
+              {% if p.stock < 5 %}
+              <span style="color:#dc2626;font-weight:700;">{{ p.stock }} ⚠</span>
+              {% else %}
+              <span style="color:#16a34a;font-weight:600;">{{ p.stock }}</span>
+              {% endif %}
+            </td>
+            <td style="font-size:0.78rem;color:var(--muted);">{{ p.compatible_with or '—' }}</td>
+            <td>
+              <button class="btn btn-outline btn-sm"
+                      onclick="openEditPart({{ p.id }}, '{{ p.name }}', '{{ p.brand }}', '{{ p.category }}', {{ p.price }}, {{ p.stock }}, '{{ p.compatible_with or '' }}', '{{ p.description or '' }}')">
+                Edit
+              </button>
+              <button class="btn btn-danger btn-sm"
+                      onclick="confirmDeletePart({{ p.id }})">Del</button>
+              <form id="deletePartForm-{{ p.id }}"
+                    action="{{ url_for('part_delete', part_id=p.id) }}"
+                    method="POST" style="display:none;"></form>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="8" style="text-align:center;color:var(--muted);padding:32px;">
+              No parts in inventory yet.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ── ORDERS TAB ── -->
+<div id="ppane-orders" style="display:none;">
+  <div class="panel">
+    <div class="panel-header">
+      <div class="panel-title">PARTS ORDERS</div>
+      <select class="filter-input" id="order-status-filter" onchange="filterOrderRows()" style="width:160px;">
+        <option value="">All Status</option>
+        <option>Pending</option>
+        <option>Processing</option>
+        <option>Completed</option>
+        <option>Cancelled</option>
+      </select>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Customer</th>
+            <th>Part</th>
+            <th>Qty</th>
+            <th>Total</th>
+            <th>Date</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="orders-tbody">
+          {% for o in orders %}
+          <tr data-status="{{ o.status }}">
+            <td style="color:var(--muted2);">#{{ o.id }}</td>
+            <td><strong>{{ o.customer }}</strong></td>
+            <td>{{ o.part_name }}</td>
+            <td>{{ o.quantity }}</td>
+            <td style="font-weight:700;color:var(--accent);">&#8369;{{ '{:,.2f}'.format(o.total_price) }}</td>
+            <td style="font-size:0.8rem;color:var(--muted);">{{ o.order_date }}</td>
+            <td><span class="status status-{{ o.status.lower() }}">{{ o.status }}</span></td>
+            <td style="white-space:nowrap;">
+              {% if o.status == 'Pending' %}
+              <button class="btn btn-success btn-sm"
+                      onclick="updateOrderStatus({{ o.id }}, 'Processing')">Process</button>
+              {% elif o.status == 'Processing' %}
+              <button class="btn btn-success btn-sm"
+                      onclick="updateOrderStatus({{ o.id }}, 'Completed')">Complete</button>
+              {% endif %}
+              {% if o.status not in ['Completed'] %}
+              <form id="orderStatusForm-{{ o.id }}"
+                    action="{{ url_for('order_update_status', order_id=o.id) }}"
+                    method="POST" style="display:none;">
+                <input type="hidden" name="status" id="orderStatusInput-{{ o.id }}"/>
+              </form>
+              {% endif %}
+              <button class="btn btn-danger btn-sm"
+                      onclick="confirmDeleteOrder({{ o.id }})">Del</button>
+              <form id="deleteOrderForm-{{ o.id }}"
+                    action="{{ url_for('order_delete', order_id=o.id) }}"
+                    method="POST" style="display:none;"></form>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="8" style="text-align:center;color:var(--muted);padding:32px;">
+              No orders yet.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+
+<!-- ── PART MODAL ── -->
+<div class="modal-overlay" id="partModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="partModalTitle">ADD PART</div>
+      <button class="modal-close" onclick="closeModal('partModal')">&#x2715;</button>
+    </div>
+
+    <form id="partForm" action="{{ url_for('part_add') }}" method="POST">
+      <input type="hidden" id="part-id-field" name="_part_id"/>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Part Name *</label>
+          <input class="form-control" id="p-name" name="name" placeholder="Air Filter" required/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Brand *</label>
+          <input class="form-control" id="p-brand" name="brand" placeholder="Honda OEM" required/>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Category</label>
+          <select class="form-control" id="p-category" name="category">
+            <option>Engine</option><option>Brakes</option><option>Suspension</option>
+            <option>Electrical</option><option>Body</option><option>Tires</option>
+            <option>Accessories</option><option>Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Price (₱) *</label>
+          <input class="form-control" id="p-price" name="price" type="number"
+                 placeholder="250" step="0.01" required/>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Stock *</label>
+          <input class="form-control" id="p-stock" name="stock" type="number"
+                 placeholder="10" required/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Compatible With</label>
+          <input class="form-control" id="p-compat" name="compatible_with"
+                 placeholder="Honda Click, Yamaha NMAX..."/>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Description</label>
+        <textarea class="form-control" id="p-desc" name="description"
+                  placeholder="Optional description..."></textarea>
+      </div>
+    </form>
+
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('partModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitPartForm()">SAVE PART</button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function showPartsTab(tab) {
+    ['inventory','orders'].forEach(t => {
+      document.getElementById('ppane-' + t).style.display = t === tab ? 'block' : 'none';
+      document.getElementById('ptab-' + t).classList.toggle('active', t === tab);
+    });
+  }
+
+  function openAddPart() {
+    document.getElementById('partModalTitle').textContent = 'ADD PART';
+    document.getElementById('partForm').reset();
+    document.getElementById('part-id-field').value = '';
+    openModal('partModal');
+  }
+
+  function openEditPart(id, name, brand, category, price, stock, compat, desc) {
+    document.getElementById('partModalTitle').textContent = 'EDIT PART';
+    document.getElementById('part-id-field').value = id;
+    document.getElementById('p-name').value     = name;
+    document.getElementById('p-brand').value    = brand;
+    document.getElementById('p-category').value = category;
+    document.getElementById('p-price').value    = price;
+    document.getElementById('p-stock').value    = stock;
+    document.getElementById('p-compat').value   = compat;
+    document.getElementById('p-desc').value     = desc;
+    openModal('partModal');
+  }
+
+  function submitPartForm() {
+    const id = document.getElementById('part-id-field').value;
+    const form = document.getElementById('partForm');
+    form.action = id ? `/parts/edit/${id}` : '{{ url_for("part_add") }}';
+    form.submit();
+  }
+
+  function confirmDeletePart(id) {
+    if (confirm('Delete this part from inventory?')) {
+      document.getElementById('deletePartForm-' + id).submit();
+    }
+  }
+
+  function updateOrderStatus(id, status) {
+    document.getElementById('orderStatusInput-' + id).value = status;
+    document.getElementById('orderStatusForm-' + id).submit();
+  }
+
+  function confirmDeleteOrder(id) {
+    if (confirm('Delete this order?')) {
+      document.getElementById('deleteOrderForm-' + id).submit();
+    }
+  }
+
+  function filterPartRows() {
+    const search = (document.getElementById('part-search')?.value || '').toLowerCase();
+    document.querySelectorAll('#parts-tbody tr[data-name]').forEach(row => {
+      const text = `${row.dataset.name} ${row.dataset.brand}`.toLowerCase();
+      row.style.display = text.includes(search) ? '' : 'none';
+    });
+  }
+
+  function filterOrderRows() {
+    const status = document.getElementById('order-status-filter')?.value || '';
+    document.querySelectorAll('#orders-tbody tr[data-status]').forEach(row => {
+      row.style.display = (!status || row.dataset.status === status) ? '' : 'none';
+    });
+  }
+</script>
+{% endblock %}
