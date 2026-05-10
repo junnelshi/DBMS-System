@@ -32,7 +32,6 @@
           <th>Date of Birth</th>
           <th>Driver's License</th>
           <th>Address</th>
-          <th>Activity</th>
           <th>Joined</th>
           <th>Actions</th>
         </tr>
@@ -68,15 +67,7 @@
           <td style="font-size:0.8rem;color:var(--muted);max-width:160px;">
             {{ c.address or '—' }}
           </td>
-          <td>
-            <!-- Activity badges - counts populated by server if available, else show view link -->
-            <div style="display:flex;gap:5px;flex-wrap:wrap;">
-              <span style="font-size:0.68rem;padding:2px 7px;border-radius:10px;
-                           background:rgba(8,131,149,0.1);color:var(--accent);font-weight:600;">
-                🏍 Renter
-              </span>
-            </div>
-          </td>
+
           <td style="font-size:0.78rem;color:var(--muted);">
             {{ c.created_at[:10] if c.created_at else '—' }}
           </td>
@@ -96,7 +87,7 @@
         </tr>
         {% else %}
         <tr>
-          <td colspan="10" style="text-align:center;color:var(--muted);padding:32px;">
+       <td colspan="9" style="text-align:center;color:var(--muted);padding:32px;">
             No customers registered yet.
           </td>
         </tr>

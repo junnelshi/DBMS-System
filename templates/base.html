@@ -29,6 +29,8 @@
     {% endif %}
 
     <nav class="sidebar-nav">
+
+      <!-- MAIN -->
       <div class="nav-label">Main</div>
 
       <a href="{{ url_for('dashboard') }}"
@@ -40,44 +42,59 @@
         Dashboard
       </a>
 
-      <a href="{{ url_for('motors') }}"
-         class="nav-link {% if request.endpoint == 'motors' %}active{% endif %}">
+      <!-- MOTORCYCLES GROUP -->
+      <div class="nav-label" style="margin-top:6px;">Motorcycles</div>
+
+      <a href="{{ url_for('motors_rent') }}"
+         class="nav-link {% if request.endpoint == 'motors_rent' %}active{% endif %}">
         <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="6" cy="17" r="3"/><circle cx="18" cy="17" r="3"/>
           <path d="M9 17h6M3 17H1v-4l5-5h7l3 4h2l2 2v3h-2"/>
         </svg>
-        Motorcycles
+        For Rent
       </a>
+
+      <a href="{{ url_for('motors_sale') }}"
+         class="nav-link {% if request.endpoint == 'motors_sale' %}active{% endif %}">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="6" cy="17" r="3"/><circle cx="18" cy="17" r="3"/>
+          <path d="M9 17h6M3 17H1v-4l5-5h7l3 4h2l2 2v3h-2"/>
+          <line x1="18" y1="5" x2="18" y2="11"/><line x1="15" y1="8" x2="21" y2="8"/>
+        </svg>
+        For Sale
+      </a>
+
+      <!-- COMMERCE GROUP -->
+      <div class="nav-label" style="margin-top:6px;">Commerce</div>
 
       <a href="{{ url_for('rentals') }}"
          class="nav-link {% if request.endpoint == 'rentals' %}active{% endif %}">
         <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2
-                   M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2M9 12h6M9 16h4"/>
+                   M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+          <line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/>
         </svg>
         Rentals
       </a>
 
-      <div class="nav-label">Commerce</div>
-
-      <a href="{{ url_for('sales') }}"
-         class="nav-link {% if request.endpoint == 'sales' %}active{% endif %}">
+      <a href="{{ url_for('sales_motors') }}"
+         class="nav-link {% if request.endpoint == 'sales_motors' %}active{% endif %}">
         <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
           <line x1="3" y1="6" x2="21" y2="6"/>
           <path d="M16 10a4 4 0 01-8 0"/>
         </svg>
-        Sales
+        Motorcycle Sale
       </a>
 
-      <a href="{{ url_for('parts') }}"
-         class="nav-link {% if request.endpoint == 'parts' %}active{% endif %}">
+      <a href="{{ url_for('sales_parts') }}"
+         class="nav-link {% if request.endpoint == 'sales_parts' %}active{% endif %}">
         <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="12" cy="12" r="3"/>
           <path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/>
           <path d="M12 2v2M12 20v2M2 12h2M20 12h2"/>
         </svg>
-        Parts Shop
+        Parts Sale
       </a>
 
       <a href="{{ url_for('installments') }}"
@@ -89,7 +106,8 @@
         Installments
       </a>
 
-      <div class="nav-label">Admin</div>
+      <!-- ADMIN GROUP -->
+      <div class="nav-label" style="margin-top:6px;">Admin</div>
 
       <a href="{{ url_for('customers') }}"
          class="nav-link {% if request.endpoint == 'customers' %}active{% endif %}">
@@ -113,7 +131,8 @@
       </a>
       {% endif %}
 
-      <div class="nav-label">Account</div>
+      <!-- ACCOUNT -->
+      <div class="nav-label" style="margin-top:6px;">Account</div>
 
       <a href="{{ url_for('profile') }}"
          class="nav-link {% if request.endpoint == 'profile' %}active{% endif %}">
@@ -123,6 +142,7 @@
         </svg>
         My Profile
       </a>
+
     </nav>
 
     <div class="sidebar-footer">
@@ -130,10 +150,7 @@
         <div class="user-avatar">{{ session.get('user_name', 'U')[0].upper() }}</div>
         <div class="user-info">
           <p>{{ session.get('user_name', 'Admin') }}</p>
-          <small>
-            {% if session.get('role') == 'superadmin' %}Super Admin
-            {% else %}Administrator{% endif %}
-          </small>
+          <small>{% if session.get('role') == 'superadmin' %}Super Admin{% else %}Administrator{% endif %}</small>
         </div>
       </div>
       <a href="{{ url_for('logout') }}" class="btn-logout">⏻ &nbsp;Logout</a>
@@ -146,16 +163,13 @@
       <div style="display:flex;align-items:center;gap:14px;">
         <div class="topbar-title">{% block page_title %}{% endblock %}</div>
         <span class="role-badge">
-          {% if session.get('role') == 'superadmin' %}Super Admin
-          {% else %}Admin{% endif %}
+          {% if session.get('role') == 'superadmin' %}Super Admin{% else %}Admin{% endif %}
         </span>
         {% if session.get('branch_name') %}
         <span class="branch-badge">{{ session.get('branch_name') }}</span>
         {% endif %}
       </div>
-      <div class="topbar-right">
-        {% block topbar_actions %}{% endblock %}
-      </div>
+      <div class="topbar-right">{% block topbar_actions %}{% endblock %}</div>
     </header>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
@@ -168,13 +182,10 @@
       {% endif %}
     {% endwith %}
 
-    <div class="page-body">
-      {% block content %}{% endblock %}
-    </div>
+    <div class="page-body">{% block content %}{% endblock %}</div>
   </div>
 
   <div class="toast-container" id="toastContainer"></div>
-
   <script src="{{ url_for('static', filename='script.js') }}"></script>
   {% block scripts %}{% endblock %}
 </body>

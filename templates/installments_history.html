@@ -50,7 +50,7 @@
     <div style="margin-top:14px;padding:10px 14px;background:{% if installment.status == 'Overdue' %}rgba(239,68,68,0.08){% else %}var(--accent-glow){% endif %};
                 border-radius:8px;font-size:0.83rem;
                 color:{% if installment.status == 'Overdue' %}#dc2626{% else %}var(--accent){% endif %};">
-      📅 Next due: <strong>{{ installment.next_due_date }}</strong>
+       Next due: <strong>{{ installment.next_due_date }}</strong>
     </div>
     {% endif %}
   </div>

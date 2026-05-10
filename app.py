@@ -5,6 +5,9 @@ from dbhelper import (
     get_admin_by_email,
     get_all_motors, get_motor_by_id, add_motor, update_motor, delete_motor,
     get_motors_by_status, get_motors_for_sale,
+    get_all_rental_motors, get_rental_motor_by_id, add_rental_motor, update_rental_motor, delete_rental_motor,
+    get_rental_motors_by_status,
+    get_all_sale_motors, get_sale_motor_by_id, add_sale_motor, update_sale_motor, delete_sale_motor,
     get_all_rentals, get_rentals_by_customer, get_rental_by_id,
     add_rental, update_rental_status, delete_rental,
     get_all_sales, add_sale, confirm_sale, delete_sale, get_sale_by_id,
@@ -81,16 +84,14 @@ def get_branch_id():
 
 
 # ═══════════════════════════════════════════════════════════
-#  LANDING PAGE  (new)
+#  LANDING PAGE
 # ═══════════════════════════════════════════════════════════
 
 @app.route('/')
 def index():
-    # If already logged in, skip landing page and go straight to their area
     if is_logged_in():
         return redirect(url_for('dashboard') if is_admin() else url_for('portal'))
-    # Get all motorcycles for landing page carousel
-    featured_motors = get_all_motors() if get_all_motors() else []
+    featured_motors = get_all_motors() or []
     return render_template('landing.html', featured_motors=featured_motors)
 
 
@@ -98,6 +99,37 @@ def index():
 #  AUTH
 # ═══════════════════════════════════════════════════════════
 
+@app.route('/debug-inst')
+def debug_inst():
+    from dbhelper import _fetchall
+    inst = _fetchall("SELECT * FROM installments")
+    sales = _fetchall("SELECT * FROM motor_sales")
+    return f"<pre>INSTALLMENTS:\n{[dict(r) for r in inst]}\n\nMOTOR_SALES:\n{[dict(r) for r in sales]}</pre>"
+
+
+@app.route('/fix-now')
+def fix_now():
+    import sqlite3, os
+    base_path = os.path.dirname(os.path.abspath(__file__))
+    db_path = os.path.join(base_path, "motorent.db")
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+    try:
+        cur.execute("""
+            INSERT INTO installments 
+            (sale_id, customer_id, sale_motor_id, motor_id, total_price, down_payment, 
+             balance_amount, monthly_payment, term_months, paid_months, 
+             next_due_date, status)
+            VALUES (2, 3, 6, 6, 70000.0, 5000.0, 65000.0, 5416.67, 12, 0, '2026-06-05', 'Active')
+        """)
+        conn.commit()
+        result = f"SUCCESS! Rows inserted: {cur.rowcount}"
+    except Exception as e:
+        result = f"ERROR: {e}"
+    finally:
+        conn.close()
+    return f"<pre>{result}<br><a href='/debug-inst'>Check data</a> | <a href='/installments'>Admin Installments</a> | <a href='/portal'>Portal</a></pre>"
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if is_logged_in():
@@ -168,7 +200,7 @@ def register():
 def logout():
     session.clear()
     flash('You have been logged out.', 'info')
-    return redirect(url_for('index'))   # goes to landing page now
+    return redirect(url_for('index'))
 
 
 # ═══════════════════════════════════════════════════════════
@@ -186,6 +218,7 @@ def portal():
     rentals          = get_rentals_by_customer(session['user_id'])
     my_orders        = get_orders_by_customer(session['user_id'])
     my_installments  = get_installments_by_customer(session['user_id'])
+    my_motor_sales   = get_sales_by_customer(session['user_id'])   # ← ADD THIS
     parts            = get_all_parts()
     return render_template('customer_portal.html',
         customer=customer,
@@ -194,6 +227,7 @@ def portal():
         rentals=rentals,
         my_orders=my_orders,
         my_installments=my_installments,
+        my_motor_sales=my_motor_sales,          # ← ADD THIS
         parts=parts,
     )
 
@@ -210,7 +244,7 @@ def portal_buy():
     if not motor_id:
         flash('Motor not found.', 'error')
         return redirect(url_for('portal'))
-    motor = get_motor_by_id(int(motor_id))
+    motor = get_sale_motor_by_id(int(motor_id))
     if not motor or not motor['selling_price']:
         flash('This motor is not available for purchase.', 'error')
         return redirect(url_for('portal'))
@@ -275,7 +309,7 @@ def dashboard():
     branch_id = get_branch_id()
     stats     = get_dashboard_stats(branch_id)
     rentals   = get_all_rentals(branch_id)
-    motors    = get_all_motors(branch_id)
+    motors    = get_all_rental_motors(branch_id)
     return render_template('dashboard.html',
         stats=stats, motors=motors, rentals=rentals,
         role=session.get('role'), user_name=session.get('user_name'),
@@ -283,89 +317,176 @@ def dashboard():
 
 
 # ═══════════════════════════════════════════════════════════
-#  MOTORS
+#  MOTORS — FOR RENT  (endpoint: motors_rent)
+# ═══════════════════════════════════════════════════════════
+
+@app.route('/motors/rent')
+@admin_required
+def motors_rent():
+    branch_id     = get_branch_id()
+    status_filter = request.args.get('status', '')
+    search        = request.args.get('search', '')
+    all_motors    = get_all_rental_motors(branch_id)
+    if status_filter:
+        all_motors = [m for m in all_motors if m['status'] == status_filter]
+    if search:
+        s = search.lower()
+        all_motors = [m for m in all_motors if
+                      s in m['brand'].lower() or s in m['model'].lower() or s in m['plate'].lower()]
+    return render_template('motors_rent.html',
+        motors=all_motors,
+        customers=get_all_customers(),
+        role=session.get('role'),
+        status_filter=status_filter,
+        search=search,
+    )
+
+@app.route('/motors/rent/add', methods=['POST'])
+@admin_required
+def motors_rent_add():
+    brand        = request.form.get('brand', '').strip()
+    model        = request.form.get('model', '').strip()
+    year         = request.form.get('year', '').strip()
+    type_        = request.form.get('type', '').strip()
+    plate        = request.form.get('plate', '').strip()
+    rate_per_day = request.form.get('rate_per_day', '').strip()
+    status       = request.form.get('status', 'Available').strip()
+    notes        = request.form.get('notes', '').strip()
+    if not all([brand, model, year, type_, plate, rate_per_day]):
+        flash('Please fill in all required fields.', 'error')
+        return redirect(url_for('motors_rent'))
+    if recordexists('rental_motors', plate=plate):
+        flash(f'A rental motor with plate "{plate}" already exists.', 'error')
+        return redirect(url_for('motors_rent'))
+    if add_rental_motor(brand, model, int(year), type_, plate,
+                        float(rate_per_day), status, notes, get_branch_id()):
+        flash(f'{brand} {model} added to rental fleet!', 'success')
+    else:
+        flash('Failed to add motor.', 'error')
+    return redirect(url_for('motors_rent'))
+
+@app.route('/motors/rent/edit/<int:motor_id>', methods=['POST'])
+@admin_required
+def motors_rent_edit(motor_id):
+    brand        = request.form.get('brand', '').strip()
+    model        = request.form.get('model', '').strip()
+    year         = request.form.get('year', '').strip()
+    type_        = request.form.get('type', '').strip()
+    plate        = request.form.get('plate', '').strip()
+    rate_per_day = request.form.get('rate_per_day', '').strip()
+    status       = request.form.get('status', 'Available').strip()
+    notes        = request.form.get('notes', '').strip()
+    if not all([brand, model, year, type_, plate, rate_per_day]):
+        flash('Please fill in all required fields.', 'error')
+        return redirect(url_for('motors_rent'))
+    if recordexists_exclude('rental_motors', 'plate', plate, 'id', motor_id):
+        flash(f'Plate "{plate}" is already used by another motor.', 'error')
+        return redirect(url_for('motors_rent'))
+    if update_rental_motor(motor_id, brand=brand, model=model, year=int(year),
+                           type=type_, plate=plate, rate_per_day=float(rate_per_day),
+                           status=status, notes=notes):
+        flash('Rental motor updated!', 'success')
+    else:
+        flash('Failed to update motor.', 'error')
+    return redirect(url_for('motors_rent'))
+
+@app.route('/motors/rent/delete/<int:motor_id>', methods=['POST'])
+@admin_required
+def motors_rent_delete(motor_id):
+    delete_rental_motor(motor_id)
+    flash('Rental motor deleted.', 'success')
+    return redirect(url_for('motors_rent'))
+
+
+# ═══════════════════════════════════════════════════════════
+#  MOTORS — FOR SALE  (endpoint: motors_sale)
+# ═══════════════════════════════════════════════════════════
+
+@app.route('/motors/sale')
+@admin_required
+def motors_sale():
+    branch_id     = get_branch_id()
+    status_filter = request.args.get('status', '')
+    search        = request.args.get('search', '')
+    all_motors    = get_all_sale_motors(branch_id)
+    if status_filter:
+        all_motors = [m for m in all_motors if m['status'] == status_filter]
+    if search:
+        s = search.lower()
+        all_motors = [m for m in all_motors if
+                      s in m['brand'].lower() or s in m['model'].lower() or s in m['plate'].lower()]
+    return render_template('motors_sales.html',
+        motors=all_motors,
+        role=session.get('role'),
+        status_filter=status_filter,
+        search=search,
+    )
+
+@app.route('/motors/sale/add', methods=['POST'])
+@admin_required
+def motors_sale_add():
+    brand         = request.form.get('brand', '').strip()
+    model         = request.form.get('model', '').strip()
+    year          = request.form.get('year', '').strip()
+    type_         = request.form.get('type', '').strip()
+    plate         = request.form.get('plate', '').strip()
+    selling_price = request.form.get('selling_price', '').strip()
+    status        = request.form.get('status', 'Available').strip()
+    notes         = request.form.get('notes', '').strip()
+    if not all([brand, model, year, type_, plate, selling_price]):
+        flash('Please fill in all required fields.', 'error')
+        return redirect(url_for('motors_sale'))
+    if recordexists('sale_motors', plate=plate):
+        flash(f'A sale motor with plate "{plate}" already exists.', 'error')
+        return redirect(url_for('motors_sale'))
+    if add_sale_motor(brand, model, int(year), type_, plate,
+                      float(selling_price), status, notes, get_branch_id()):
+        flash(f'{brand} {model} added to sale inventory!', 'success')
+    else:
+        flash('Failed to add motor.', 'error')
+    return redirect(url_for('motors_sale'))
+
+@app.route('/motors/sale/edit/<int:motor_id>', methods=['POST'])
+@admin_required
+def motors_sale_edit(motor_id):
+    brand         = request.form.get('brand', '').strip()
+    model         = request.form.get('model', '').strip()
+    year          = request.form.get('year', '').strip()
+    type_         = request.form.get('type', '').strip()
+    plate         = request.form.get('plate', '').strip()
+    selling_price = request.form.get('selling_price', '').strip()
+    status        = request.form.get('status', 'Available').strip()
+    notes         = request.form.get('notes', '').strip()
+    if not all([brand, model, year, type_, plate, selling_price]):
+        flash('Please fill in all required fields.', 'error')
+        return redirect(url_for('motors_sale'))
+    if recordexists_exclude('sale_motors', 'plate', plate, 'id', motor_id):
+        flash(f'Plate "{plate}" is already used by another motor.', 'error')
+        return redirect(url_for('motors_sale'))
+    if update_sale_motor(motor_id, brand=brand, model=model, year=int(year),
+                         type=type_, plate=plate, selling_price=float(selling_price),
+                         status=status, notes=notes):
+        flash('Sale motor updated!', 'success')
+    else:
+        flash('Failed to update motor.', 'error')
+    return redirect(url_for('motors_sale'))
+
+@app.route('/motors/sale/delete/<int:motor_id>', methods=['POST'])
+@admin_required
+def motors_sale_delete(motor_id):
+    delete_sale_motor(motor_id)
+    flash('Sale motor deleted.', 'success')
+    return redirect(url_for('motors_sale'))
+
+
+# ═══════════════════════════════════════════════════════════
+#  KEEP OLD /motors route as redirect for backwards compat
 # ═══════════════════════════════════════════════════════════
 
 @app.route('/motors')
 @admin_required
 def motors():
-    branch_id     = get_branch_id()
-    status_filter = request.args.get('status', '')
-    type_filter   = request.args.get('type', '')
-    search        = request.args.get('search', '')
-    all_motors    = get_all_motors(branch_id)
-    if status_filter: all_motors = [m for m in all_motors if m['status'] == status_filter]
-    if type_filter:   all_motors = [m for m in all_motors if m['type'] == type_filter]
-    if search:
-        s = search.lower()
-        all_motors = [m for m in all_motors if s in m['brand'].lower() or s in m['model'].lower() or s in m['plate'].lower()]
-    return render_template('motors.html',
-        motors=all_motors, available_motors=get_motors_by_status('Available', branch_id),
-        customers=get_all_customers(), role=session.get('role'),
-        status_filter=status_filter, type_filter=type_filter, search=search,
-    )
-
-@app.route('/motors/add', methods=['POST'])
-@admin_required
-def motor_add():
-    brand         = request.form.get('brand','').strip()
-    model         = request.form.get('model','').strip()
-    year          = request.form.get('year','').strip()
-    type_         = request.form.get('type','').strip()
-    plate         = request.form.get('plate','').strip()
-    rate_per_day  = request.form.get('rate_per_day','').strip()
-    status        = request.form.get('status','Available').strip()
-    notes         = request.form.get('notes','').strip()
-    selling_price = request.form.get('selling_price','').strip()
-    for_sale      = 1 if request.form.get('for_sale') else 0
-    if not all([brand, model, year, type_, plate, rate_per_day]):
-        flash('Please fill in all required motor fields.', 'error')
-        return redirect(url_for('motors'))
-    if recordexists('motors', plate=plate):
-        flash(f'A motor with plate "{plate}" already exists.', 'error')
-        return redirect(url_for('motors'))
-    if add_motor(brand, model, int(year), type_, plate, float(rate_per_day), status, notes,
-                 selling_price=float(selling_price) if selling_price else None,
-                 for_sale=for_sale, branch_id=get_branch_id()):
-        flash(f'{brand} {model} added successfully!', 'success')
-    else:
-        flash('Failed to add motor.', 'error')
-    return redirect(url_for('motors'))
-
-@app.route('/motors/edit/<int:motor_id>', methods=['POST'])
-@admin_required
-def motor_edit(motor_id):
-    brand         = request.form.get('brand','').strip()
-    model         = request.form.get('model','').strip()
-    year          = request.form.get('year','').strip()
-    type_         = request.form.get('type','').strip()
-    plate         = request.form.get('plate','').strip()
-    rate_per_day  = request.form.get('rate_per_day','').strip()
-    status        = request.form.get('status','Available').strip()
-    notes         = request.form.get('notes','').strip()
-    selling_price = request.form.get('selling_price','').strip()
-    for_sale      = 1 if request.form.get('for_sale') else 0
-    if not all([brand, model, year, type_, plate, rate_per_day]):
-        flash('Please fill in all required fields.', 'error')
-        return redirect(url_for('motors'))
-    if recordexists_exclude('motors', 'plate', plate, 'id', motor_id):
-        flash(f'Plate "{plate}" is already used by another motor.', 'error')
-        return redirect(url_for('motors'))
-    if update_motor(motor_id, brand=brand, model=model, year=int(year), type=type_,
-                    plate=plate, rate_per_day=float(rate_per_day), status=status, notes=notes,
-                    selling_price=float(selling_price) if selling_price else None,
-                    for_sale=for_sale):
-        flash('Motor updated successfully!', 'success')
-    else:
-        flash('Failed to update motor.', 'error')
-    return redirect(url_for('motors'))
-
-@app.route('/motors/delete/<int:motor_id>', methods=['POST'])
-@admin_required
-def motor_delete(motor_id):
-    delete_motor(motor_id)
-    flash('Motor deleted.', 'success')
-    return redirect(url_for('motors'))
+    return redirect(url_for('motors_rent'))
 
 
 # ═══════════════════════════════════════════════════════════
@@ -378,33 +499,36 @@ def rentals():
     branch_id     = get_branch_id()
     status_filter = request.args.get('status', '')
     all_rentals   = get_all_rentals(branch_id)
-    if status_filter: all_rentals = [r for r in all_rentals if r['status'] == status_filter]
+    if status_filter:
+        all_rentals = [r for r in all_rentals if r['status'] == status_filter]
     return render_template('rentals.html',
-        rentals=all_rentals, available_motors=get_motors_by_status('Available', branch_id),
-        customers=get_all_customers(), role=session.get('role'),
+        rentals=all_rentals,
+        available_motors=get_rental_motors_by_status('Available', branch_id),
+        customers=get_all_customers(),
+        role=session.get('role'),
         status_filter=status_filter,
     )
 
 @app.route('/rentals/add', methods=['POST'])
 @login_required
 def rental_add():
-    motor_id   = request.form.get('motor_id','').strip()
-    start_date = request.form.get('start_date','').strip()
-    end_date   = request.form.get('end_date','').strip()
-    notes      = request.form.get('notes','').strip()
+    motor_id    = request.form.get('motor_id', '').strip()
+    start_date  = request.form.get('start_date', '').strip()
+    end_date    = request.form.get('end_date', '').strip()
+    notes       = request.form.get('notes', '').strip()
     redirect_to = url_for('rentals') if is_admin() else url_for('portal')
     customer_id = request.form.get('customer_id', '').strip() if is_admin() else str(session['user_id'])
     if not all([motor_id, start_date, end_date, customer_id]):
         flash('Please fill in all required fields.', 'error')
         return redirect(redirect_to)
-    motor = get_motor_by_id(int(motor_id))
+    motor = get_rental_motor_by_id(int(motor_id))
     if not motor or motor['status'] != 'Available':
         flash('This motor is not available for rental.', 'error')
         return redirect(redirect_to)
     days = calc_days(start_date, end_date)
     total_cost = days * motor['rate_per_day']
     if add_rental(int(customer_id), int(motor_id), start_date, end_date, total_cost, notes, get_branch_id()):
-        update_motor(int(motor_id), status='Rented')
+        update_rental_motor(int(motor_id), status='Rented')
         flash(f'Booking submitted! ₱{total_cost:,.2f} for {days} day(s). Awaiting admin approval.', 'success')
     else:
         flash('Failed to create booking.', 'error')
@@ -423,7 +547,7 @@ def rental_return(rental_id):
     rental = get_rental_by_id(rental_id)
     if rental:
         update_rental_status(rental_id, 'Returned')
-        update_motor(rental['motor_id'], status='Available')
+        update_rental_motor(rental['motor_id'], status='Available')
         flash('Rental marked as returned.', 'success')
     return redirect(url_for('rentals'))
 
@@ -433,19 +557,19 @@ def rental_delete(rental_id):
     rental = get_rental_by_id(rental_id)
     if rental:
         if rental['status'] in ('Rented', 'Pending'):
-            update_motor(rental['motor_id'], status='Available')
+            update_rental_motor(rental['motor_id'], status='Available')
         delete_rental(rental_id)
         flash('Rental deleted.', 'success')
     return redirect(url_for('rentals'))
 
 
 # ═══════════════════════════════════════════════════════════
-#  SALES
+#  SALES — MOTORCYCLES  (endpoint: sales_motors)
 # ═══════════════════════════════════════════════════════════
 
-@app.route('/sales')
+@app.route('/sales/motors')
 @admin_required
-def sales():
+def sales_motors():
     branch_id = get_branch_id()
     all_sales = get_all_sales(branch_id)
     return render_template('sales.html',
@@ -454,131 +578,177 @@ def sales():
         customers=get_all_customers(),
     )
 
-@app.route('/sales/add', methods=['POST'])
+@app.route('/sales/motors/add', methods=['POST'])
 @admin_required
-def sale_add():
-    customer_id   = request.form.get('customer_id','').strip()
-    motor_id      = request.form.get('motor_id','').strip()
-    total_price   = request.form.get('total_price','').strip()
-    payment_type  = request.form.get('payment_type','Cash').strip()
-    sale_date     = request.form.get('sale_date','').strip()
+def sales_motors_add():
+    customer_id   = request.form.get('customer_id', '').strip()
+    motor_id      = request.form.get('motor_id', '').strip()
+    total_price   = request.form.get('total_price', '').strip()
+    payment_type  = request.form.get('payment_type', 'Cash').strip()
+    sale_date     = request.form.get('sale_date', '').strip()
     down_payment  = float(request.form.get('down_payment', 0) or 0)
     inst_months   = int(request.form.get('installment_months', 0) or 0)
-    notes         = request.form.get('notes','').strip()
+    notes         = request.form.get('notes', '').strip()
     if not all([customer_id, motor_id, total_price, sale_date]):
         flash('Please fill in all required fields.', 'error')
-        return redirect(url_for('sales'))
+        return redirect(url_for('sales_motors'))
     sale_id = add_sale(
         int(customer_id), int(motor_id), float(total_price),
         payment_type, sale_date, down_payment, inst_months, notes, get_branch_id()
     )
     if sale_id:
-        flash('Sale recorded successfully! Confirm it to mark motor as Sold.', 'success')
+        flash('Sale recorded! Confirm it to mark motor as Sold.', 'success')
     else:
         flash('Failed to record sale.', 'error')
-    return redirect(url_for('sales'))
+    return redirect(url_for('sales_motors'))
 
-@app.route('/sales/confirm/<int:sale_id>', methods=['POST'])
+@app.route('/sales/motors/confirm/<int:sale_id>', methods=['POST'])
 @admin_required
-def sale_confirm(sale_id):
+def sales_motors_confirm(sale_id):
     sale = get_sale_by_id(sale_id)
     if sale:
+        # sale_motor_id is the FK — handle both column name variants
+        motor_id = sale['sale_motor_id'] if 'sale_motor_id' in sale.keys() else sale['motor_id']
+        inst_months = sale['installment_months'] if sale['installment_months'] else 0
         confirm_sale(sale_id)
-        update_motor(sale['motor_id'], status='Sold')
-        if sale['payment_type'] == 'Installment' and sale['installment_months'] > 0:
+        update_sale_motor(motor_id, status='Sold')
+        if sale['payment_type'] == 'Installment' and inst_months > 0:
             create_installment(
                 sale_id=sale_id,
                 customer_id=sale['customer_id'],
-                motor_id=sale['motor_id'],
+                motor_id=motor_id,
                 total_price=sale['total_price'],
-                down_payment=sale['down_payment'],
-                term_months=sale['installment_months'],
+                down_payment=sale['down_payment'] or 0,
+                term_months=inst_months,
                 branch_id=get_branch_id()
             )
             flash('Sale confirmed! Installment plan created.', 'success')
         else:
             flash('Sale confirmed! Motor marked as Sold.', 'success')
-    return redirect(url_for('sales'))
+    return redirect(url_for('sales_motors'))
+
+@app.route('/sales/motors/delete/<int:sale_id>', methods=['POST'])
+@admin_required
+def sales_motors_delete(sale_id):
+    delete_sale(sale_id)
+    flash('Sale deleted.', 'success')
+    return redirect(url_for('sales_motors'))
+
+# Keep old /sales route as redirect
+@app.route('/sales')
+@admin_required
+def sales():
+    return redirect(url_for('sales_motors'))
+
+# Keep old add/confirm/delete endpoints for any existing forms
+@app.route('/sales/add', methods=['POST'])
+@admin_required
+def sale_add():
+    return sales_motors_add()
+
+@app.route('/sales/confirm/<int:sale_id>', methods=['POST'])
+@admin_required
+def sale_confirm(sale_id):
+    return sales_motors_confirm(sale_id)
 
 @app.route('/sales/delete/<int:sale_id>', methods=['POST'])
 @admin_required
 def sale_delete(sale_id):
-    delete_sale(sale_id)
-    flash('Sale deleted.', 'success')
-    return redirect(url_for('sales'))
+    return sales_motors_delete(sale_id)
 
 
 # ═══════════════════════════════════════════════════════════
-#  PARTS
+#  SALES — PARTS  (endpoint: sales_parts)
 # ═══════════════════════════════════════════════════════════
 
-@app.route('/parts')
+@app.route('/sales/parts')
 @admin_required
-def parts():
-    branch_id = get_branch_id()
+def sales_parts():
+    branch_id  = get_branch_id()
     all_parts  = get_all_parts(branch_id)
     all_orders = get_all_orders(branch_id)
-    return render_template('parts.html', parts=all_parts, orders=all_orders)
+    return render_template('sales_parts.html', parts=all_parts, orders=all_orders)
 
-@app.route('/parts/add', methods=['POST'])
+@app.route('/sales/parts/add', methods=['POST'])
 @admin_required
-def part_add():
-    name        = request.form.get('name','').strip()
-    brand       = request.form.get('brand','').strip()
-    category    = request.form.get('category','Other').strip()
-    price       = request.form.get('price','').strip()
-    stock       = request.form.get('stock','0').strip()
-    compatible  = request.form.get('compatible_with','').strip()
-    description = request.form.get('description','').strip()
+def sales_parts_add():
+    name        = request.form.get('name', '').strip()
+    brand       = request.form.get('brand', '').strip()
+    category    = request.form.get('category', 'Other').strip()
+    price       = request.form.get('price', '').strip()
+    stock       = request.form.get('stock', '0').strip()
+    compatible  = request.form.get('compatible_with', '').strip()
+    description = request.form.get('description', '').strip()
     if not all([name, price]):
         flash('Name and price are required.', 'error')
-        return redirect(url_for('parts'))
+        return redirect(url_for('sales_parts'))
     if add_part(name, brand, category, float(price), int(stock), compatible, description, get_branch_id()):
         flash(f'{name} added to inventory!', 'success')
     else:
         flash('Failed to add part.', 'error')
-    return redirect(url_for('parts'))
+    return redirect(url_for('sales_parts'))
 
-@app.route('/parts/edit/<int:part_id>', methods=['POST'])
+@app.route('/sales/parts/edit/<int:part_id>', methods=['POST'])
 @admin_required
-def part_edit(part_id):
-    name        = request.form.get('name','').strip()
-    brand       = request.form.get('brand','').strip()
-    category    = request.form.get('category','Other').strip()
-    price       = request.form.get('price','').strip()
-    stock       = request.form.get('stock','0').strip()
-    compatible  = request.form.get('compatible_with','').strip()
-    description = request.form.get('description','').strip()
+def sales_parts_edit(part_id):
+    name        = request.form.get('name', '').strip()
+    brand       = request.form.get('brand', '').strip()
+    category    = request.form.get('category', 'Other').strip()
+    price       = request.form.get('price', '').strip()
+    stock       = request.form.get('stock', '0').strip()
+    compatible  = request.form.get('compatible_with', '').strip()
+    description = request.form.get('description', '').strip()
     if update_part(part_id, name=name, brand=brand, category=category,
                    price=float(price), stock=int(stock),
                    compatible_with=compatible, description=description):
         flash('Part updated!', 'success')
     else:
         flash('Failed to update part.', 'error')
-    return redirect(url_for('parts'))
+    return redirect(url_for('sales_parts'))
 
-@app.route('/parts/delete/<int:part_id>', methods=['POST'])
+@app.route('/sales/parts/delete/<int:part_id>', methods=['POST'])
 @admin_required
-def part_delete(part_id):
+def sales_parts_delete(part_id):
     delete_part(part_id)
     flash('Part deleted.', 'success')
-    return redirect(url_for('parts'))
+    return redirect(url_for('sales_parts'))
 
 @app.route('/orders/update-status/<int:order_id>', methods=['POST'])
 @admin_required
 def order_update_status(order_id):
-    status = request.form.get('status','').strip()
+    status = request.form.get('status', '').strip()
     if status:
         update_order_status(order_id, status)
         flash(f'Order status updated to {status}.', 'success')
-    return redirect(url_for('parts'))
+    return redirect(url_for('sales_parts'))
 
 @app.route('/orders/delete/<int:order_id>', methods=['POST'])
 @admin_required
 def order_delete(order_id):
     delete_order(order_id)
     flash('Order deleted.', 'success')
-    return redirect(url_for('parts'))
+    return redirect(url_for('sales_parts'))
+
+# Keep old /parts routes as redirects
+@app.route('/parts')
+@admin_required
+def parts():
+    return redirect(url_for('sales_parts'))
+
+@app.route('/parts/add', methods=['POST'])
+@admin_required
+def part_add():
+    return sales_parts_add()
+
+@app.route('/parts/edit/<int:part_id>', methods=['POST'])
+@admin_required
+def part_edit(part_id):
+    return sales_parts_edit(part_id)
+
+@app.route('/parts/delete/<int:part_id>', methods=['POST'])
+@admin_required
+def part_delete(part_id):
+    return sales_parts_delete(part_id)
 
 
 # ═══════════════════════════════════════════════════════════
@@ -590,7 +760,39 @@ def order_delete(order_id):
 def installments():
     branch_id = get_branch_id()
     all_inst  = get_all_installments(branch_id)
-    return render_template('installments.html', installments=all_inst)
+    from datetime import date
+    return render_template('installments.html', installments=all_inst,
+                           today=str(date.today()))
+
+@app.route('/installments/repair', methods=['POST'])
+@admin_required
+def installments_repair():
+    """Re-create installment records for confirmed Installment sales that have none."""
+    from dbhelper import _fetchall, _fetchone
+    orphaned = _fetchall("""
+        SELECT ms.* FROM motor_sales ms
+        WHERE ms.payment_type='Installment'
+          AND ms.status='Confirmed'
+          AND ms.installment_months > 0
+          AND NOT EXISTS (
+              SELECT 1 FROM installments i WHERE i.sale_id = ms.id
+          )
+    """)
+    count = 0
+    for sale in orphaned:
+        motor_id = sale['sale_motor_id']
+        create_installment(
+            sale_id=sale['id'],
+            customer_id=sale['customer_id'],
+            motor_id=motor_id,
+            total_price=sale['total_price'],
+            down_payment=sale['down_payment'] or 0,
+            term_months=sale['installment_months'],
+            branch_id=sale['branch_id']
+        )
+        count += 1
+    flash(f'Repaired {count} missing installment plan(s).', 'success')
+    return redirect(url_for('installments'))
 
 @app.route('/installments/pay/<int:inst_id>', methods=['POST'])
 @admin_required
@@ -612,7 +814,7 @@ def installment_pay(inst_id):
 def installment_history(inst_id):
     inst     = get_installment_by_id(inst_id)
     payments = get_installment_payments(inst_id)
-    return render_template('installment_history.html', installment=inst, payments=payments)
+    return render_template('installments_history.html', installment=inst, payments=payments)
 
 
 # ═══════════════════════════════════════════════════════════
@@ -627,10 +829,10 @@ def branches():
 @app.route('/branches/add', methods=['POST'])
 @superadmin_required
 def branch_add():
-    name    = request.form.get('name','').strip()
-    address = request.form.get('address','').strip()
-    phone   = request.form.get('phone','').strip()
-    email   = request.form.get('email','').strip()
+    name    = request.form.get('name', '').strip()
+    address = request.form.get('address', '').strip()
+    phone   = request.form.get('phone', '').strip()
+    email   = request.form.get('email', '').strip()
     if not name or not address:
         flash('Branch name and address are required.', 'error')
         return redirect(url_for('branches'))
@@ -643,10 +845,10 @@ def branch_add():
 @app.route('/branches/edit/<int:branch_id>', methods=['POST'])
 @superadmin_required
 def branch_edit(branch_id):
-    name    = request.form.get('name','').strip()
-    address = request.form.get('address','').strip()
-    phone   = request.form.get('phone','').strip()
-    email   = request.form.get('email','').strip()
+    name    = request.form.get('name', '').strip()
+    address = request.form.get('address', '').strip()
+    phone   = request.form.get('phone', '').strip()
+    email   = request.form.get('email', '').strip()
     update_branch(branch_id, name=name, address=address, phone=phone, email=email)
     flash('Branch updated!', 'success')
     return redirect(url_for('branches'))
@@ -662,7 +864,7 @@ def branch_delete(branch_id):
 @superadmin_required
 def branch_view(branch_id):
     branch  = get_branch_by_id(branch_id)
-    motors  = get_all_motors(branch_id)
+    motors  = get_all_rental_motors(branch_id)
     rentals = get_all_rentals(branch_id)
     stats   = get_dashboard_stats(branch_id)
     return render_template('dashboard.html',

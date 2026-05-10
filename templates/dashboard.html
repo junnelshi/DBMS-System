@@ -4,179 +4,234 @@
 
 {% block head %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
 {% endblock %}
 
 {% block content %}
 
-<!-- MAIN FEATURE ANALYTICS OVERVIEW -->
-<div class="stats-grid" style="margin-bottom:24px;">
-  <!-- RENTALS -->
+<!-- STAT CARDS ROW 1: Rental fleet -->
+<div class="stats-grid">
   <div class="stat-card">
-    <div class="stat-label">🏍️ RENTALS</div>
-    <div style="margin-top:12px;margin-bottom:12px;">
-      <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:0.85rem;">
-        <span>Available</span>
-        <span style="font-weight:700;color:var(--accent);">{{ stats.available }}</span>
-      </div>
-      <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:0.85rem;">
-        <span>Active</span>
-        <span style="font-weight:700;color:#16a34a;">{{ stats.rented }}</span>
-      </div>
-      <div style="display:flex;justify-content:space-between;font-size:0.85rem;">
-        <span>Overdue</span>
-        <span style="font-weight:700;color:#dc2626;">{{ stats.overdue }}</span>
-      </div>
+    <div class="stat-label">Available for Rent</div>
+    <div class="stat-value">{{ stats.available }}</div>
+    <div class="stat-sub">Ready to rent out</div>
+    <div class="stat-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="6" cy="17" r="3"/><circle cx="18" cy="17" r="3"/>
+        <path d="M9 17h6M3 17H1v-4l5-5h7l3 4h2l2 2v3h-2"/>
+      </svg>
     </div>
-    <div style="border-top:1px solid var(--border);padding-top:12px;margin-top:12px;">
-      <div style="font-size:1.4rem;font-weight:700;color:var(--accent);">
-        &#8369;{{ '{:,.0f}'.format(stats.revenue) }}
-      </div>
-      <div style="font-size:0.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;">Revenue</div>
-    </div>
-    <a href="{{ url_for('rentals') }}" class="btn btn-sm" style="margin-top:12px;width:100%;text-align:center;">View Details →</a>
   </div>
 
-  <!-- SALES -->
-  <div class="stat-card" style="border-top-color:#7c3aed;">
-    <div class="stat-label">🛒 SALES</div>
-    <div style="margin-top:12px;margin-bottom:12px;">
-      <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:0.85rem;">
-        <span>Confirmed</span>
-        <span style="font-weight:700;color:#7c3aed;">{{ stats.sales_count }}</span>
-      </div>
-      <div style="display:flex;justify-content:space-between;font-size:0.85rem;">
-        <span>Pending</span>
-        <span style="font-weight:700;color:var(--muted);">{{ stats.pending }}</span>
-      </div>
+  <div class="stat-card green">
+    <div class="stat-label">Currently Rented</div>
+    <div class="stat-value" style="color:#16a34a;">{{ stats.rented }}</div>
+    <div class="stat-sub">{{ stats.pending }} pending approval</div>
+    <div class="stat-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+        <line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/>
+      </svg>
     </div>
-    <div style="border-top:1px solid var(--border);padding-top:12px;margin-top:12px;">
-      <div style="font-size:1.4rem;font-weight:700;color:#7c3aed;">
-        &#8369;{{ '{:,.0f}'.format(stats.sales_revenue) }}
-      </div>
-      <div style="font-size:0.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;">Revenue</div>
-    </div>
-    <a href="{{ url_for('sales') }}" class="btn btn-sm" style="margin-top:12px;width:100%;text-align:center;">View Details →</a>
   </div>
 
-  <!-- INSTALLMENTS -->
-  <div class="stat-card" style="border-top-color:#d97706;">
-    <div class="stat-label">💳 INSTALLMENTS</div>
-    <div style="margin-top:12px;margin-bottom:12px;">
-      <div style="display:flex;justify-content:space-between;font-size:0.85rem;">
-        <span>Active Plans</span>
-        <span style="font-weight:700;color:#d97706;">{{ stats.active_installments }}</span>
-      </div>
+  <div class="stat-card red">
+    <div class="stat-label">Overdue Rentals</div>
+    <div class="stat-value" style="color:#dc2626;">{{ stats.overdue }}</div>
+    <div class="stat-sub">Requires attention</div>
+    <div class="stat-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="12" y1="8" x2="12" y2="12"/>
+        <line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>
     </div>
-    <div style="border-top:1px solid var(--border);padding-top:12px;margin-top:28px;">
-      <div style="font-size:1.4rem;font-weight:700;color:#d97706;">
-        &#8369;{{ '{:,.0f}'.format(stats.installment_revenue if stats.installment_revenue else 0) }}
-      </div>
-      <div style="font-size:0.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;">Collected</div>
-    </div>
-    <a href="{{ url_for('installments') }}" class="btn btn-sm" style="margin-top:12px;width:100%;text-align:center;">View Details →</a>
   </div>
 
-  <!-- PARTS & ORDERS -->
-  <div class="stat-card" style="border-top-color:#16a34a;">
-    <div class="stat-label">🔧 PARTS & ORDERS</div>
-    <div style="margin-top:12px;margin-bottom:12px;">
-      <div style="display:flex;justify-content:space-between;font-size:0.85rem;">
-        <span>Pending</span>
-        <span style="font-weight:700;color:#16a34a;">{{ stats.pending_orders }}</span>
-      </div>
-    </div>
-    <div style="border-top:1px solid var(--border);padding-top:12px;margin-top:28px;">
-      <div style="font-size:1.4rem;font-weight:700;color:#16a34a;">
-        &#8369;{{ '{:,.0f}'.format(stats.parts_revenue if stats.parts_revenue else 0) }}
-      </div>
-      <div style="font-size:0.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;">Revenue</div>
-    </div>
-    <a href="{{ url_for('parts') }}" class="btn btn-sm" style="margin-top:12px;width:100%;text-align:center;">View Details →</a>
+  <div class="stat-card">
+    <div class="stat-label">Rental Revenue</div>
+    <div class="stat-value" style="font-size:1.8rem;">₱{{ '{:,.0f}'.format(stats.rental_revenue) }}</div>
+    <div class="stat-sub">From returned rentals</div>
+    <div class="stat-icon" style="font-size:1rem;font-weight:700;color:var(--accent);">₱</div>
   </div>
 </div>
 
-<!-- QUICK NAVIGATION -->
-<div style="background:rgba(8,131,149,0.05);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:24px;">
-  <div style="font-size:0.7rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:12px;">Quick Access</div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;">
-    <a href="{{ url_for('rentals') }}" class="btn btn-outline btn-sm">📋 Rentals</a>
-    <a href="{{ url_for('sales') }}" class="btn btn-outline btn-sm">📊 Sales</a>
-    <a href="{{ url_for('installments') }}" class="btn btn-outline btn-sm">💰 Installments</a>
-    <a href="{{ url_for('parts') }}" class="btn btn-outline btn-sm">📦 Parts</a>
-    <a href="{{ url_for('motors') }}" class="btn btn-outline btn-sm">🏍️ Fleet</a>
-    <a href="{{ url_for('customers') }}" class="btn btn-outline btn-sm">👥 Customers</a>
-    {% if session.get('role') == 'superadmin' %}
-    <a href="{{ url_for('branches') }}" class="btn btn-outline btn-sm">🏢 Branches</a>
-    {% endif %}
+<!-- STAT CARDS ROW 2: Sales (2 separate boxes) -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;">
+
+  <!-- Motorcycle Sale Box -->
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+              padding:22px;box-shadow:var(--shadow-sm);position:relative;overflow:hidden;
+              cursor:pointer;transition:box-shadow 0.2s,transform 0.2s;"
+       onclick="window.location='{{ url_for('sales_motors') }}'"
+       onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='var(--shadow-md)'"
+       onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='var(--shadow-sm)'">
+    <!-- top accent bar -->
+    <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#088395,#0ea5e9);border-radius:var(--radius) var(--radius) 0 0;"></div>
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;">
+      <div>
+        <div style="font-size:0.7rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">
+          Motorcycle Sale
+        </div>
+        <div style="display:flex;align-items:baseline;gap:16px;">
+          <div>
+            <div style="font-size:2rem;font-weight:700;color:var(--text);line-height:1;">{{ stats.motor_sales_count }}</div>
+            <div style="font-size:0.72rem;color:var(--muted);margin-top:3px;">Confirmed sales</div>
+          </div>
+          <div style="width:1px;height:36px;background:var(--border);"></div>
+          <div>
+            <div style="font-size:1.3rem;font-weight:700;color:var(--accent);line-height:1;">{{ stats.sale_motors_available }}</div>
+            <div style="font-size:0.72rem;color:var(--muted);margin-top:3px;">Units available</div>
+          </div>
+        </div>
+        <div style="margin-top:10px;font-size:0.82rem;font-weight:600;color:var(--accent);">
+          ₱{{ '{:,.0f}'.format(stats.motor_sales_revenue) }} revenue
+        </div>
+      </div>
+      <div style="width:44px;height:44px;border-radius:12px;background:var(--accent-glow);
+                  display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2">
+          <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
+          <line x1="3" y1="6" x2="21" y2="6"/>
+          <path d="M16 10a4 4 0 01-8 0"/>
+        </svg>
+      </div>
+    </div>
+    <a href="{{ url_for('sales_motors') }}" style="display:inline-block;margin-top:14px;font-size:0.75rem;font-weight:600;color:var(--accent);">Manage Sales →</a>
+  </div>
+
+  <!-- Parts Sale Box -->
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+              padding:22px;box-shadow:var(--shadow-sm);position:relative;overflow:hidden;
+              cursor:pointer;transition:box-shadow 0.2s,transform 0.2s;"
+       onclick="window.location='{{ url_for('sales_parts') }}'"
+       onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='var(--shadow-md)'"
+       onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='var(--shadow-sm)'">
+    <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#7c3aed,#a78bfa);border-radius:var(--radius) var(--radius) 0 0;"></div>
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;">
+      <div>
+        <div style="font-size:0.7rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">
+          Parts Sale
+        </div>
+        <div style="display:flex;align-items:baseline;gap:16px;">
+          <div>
+            <div style="font-size:2rem;font-weight:700;color:var(--text);line-height:1;">{{ stats.parts_orders_pending }}</div>
+            <div style="font-size:0.72rem;color:var(--muted);margin-top:3px;">Pending orders</div>
+          </div>
+          <div style="width:1px;height:36px;background:var(--border);"></div>
+          <div>
+            <div style="font-size:1.3rem;font-weight:700;color:#7c3aed;line-height:1;">{{ stats.active_installments }}</div>
+            <div style="font-size:0.72rem;color:var(--muted);margin-top:3px;">Active installs</div>
+          </div>
+        </div>
+        <div style="margin-top:10px;font-size:0.82rem;font-weight:600;color:#7c3aed;">
+          ₱{{ '{:,.0f}'.format(stats.parts_orders_revenue) }} completed
+        </div>
+      </div>
+      <div style="width:44px;height:44px;border-radius:12px;background:rgba(124,58,237,0.1);
+                  display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/>
+          <path d="M12 2v2M12 20v2M2 12h2M20 12h2"/>
+        </svg>
+      </div>
+    </div>
+    <a href="{{ url_for('sales_parts') }}" style="display:inline-block;margin-top:14px;font-size:0.75rem;font-weight:600;color:#7c3aed;">Manage Parts →</a>
+  </div>
+
+</div>
+
+<!-- ROW 3: Recent Rentals + Fleet Chart -->
+<div class="grid-2">
+  <div class="panel">
+    <div class="panel-header">
+      <div class="panel-title">RECENT RENTALS</div>
+      <a href="{{ url_for('rentals') }}" class="panel-action">View All →</a>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Customer</th><th>Motor</th><th>Start</th><th>End</th><th>Status</th><th>Total</th></tr>
+        </thead>
+        <tbody>
+          {% for r in rentals[:6] %}
+          <tr>
+            <td><strong>{{ r.customer }}</strong></td>
+            <td>{{ r.motor }}</td>
+            <td style="color:var(--muted);font-size:0.8rem;">{{ r.start_date }}</td>
+            <td style="color:var(--muted);font-size:0.8rem;">{{ r.end_date }}</td>
+            <td><span class="status status-{{ r.status.lower() }}">{{ r.status }}</span></td>
+            <td style="color:var(--accent);font-weight:700;">₱{{ '{:,.2f}'.format(r.total_cost) }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px;">No rentals yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header"><div class="panel-title">RENTAL FLEET STATUS</div></div>
+    <div class="chart-wrap"><canvas id="fleetChart"></canvas></div>
   </div>
 </div>
 
-<!-- FEATURE CHARTS VISUALIZATION -->
-<div class="stats-grid" style="margin-bottom:24px;">
-  <!-- Rental Vertical Bar Chart -->
-  <div class="panel" style="padding:16px;">
-    <div class="panel-header" style="margin-bottom:16px;">
-      <div class="panel-title">RENTAL STATUS</div>
+<!-- ROW 4: Revenue + Installments -->
+<div class="grid-2-equal">
+  <div class="panel">
+    <div class="panel-header">
+      <div class="panel-title">RENTAL REVENUE TREND</div>
+      <span style="font-size:0.7rem;color:var(--muted);">Last 6 months</span>
     </div>
-    <div style="height:250px;">
-      <canvas id="rentalChart"></canvas>
-    </div>
+    <div class="chart-wrap"><canvas id="revenueChart"></canvas></div>
   </div>
 
-  <!-- Sales Horizontal Progress Bars -->
-  <div class="panel" style="padding:16px;">
-    <div class="panel-header" style="margin-bottom:16px;">
-      <div class="panel-title">SALES PERFORMANCE</div>
+  <div class="panel">
+    <div class="panel-header">
+      <div class="panel-title">QUICK LINKS</div>
     </div>
-    <div style="display:flex;flex-direction:column;gap:16px;height:250px;justify-content:center;">
-      <div>
-        <div style="display:flex;justify-content:space-between;font-size:0.75rem;margin-bottom:6px;">
-          <span>Confirmed</span>
-          <span style="font-weight:700;color:#7c3aed;">{{ stats.sales_count }}%</span>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <a href="{{ url_for('motors_rent') }}" style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--surface2);border-radius:9px;text-decoration:none;transition:background 0.2s;" onmouseover="this.style.background='var(--surface3)'" onmouseout="this.style.background='var(--surface2)'">
+        <div style="width:36px;height:36px;border-radius:8px;background:var(--accent-glow);display:flex;align-items:center;justify-content:center;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><circle cx="6" cy="17" r="3"/><circle cx="18" cy="17" r="3"/><path d="M9 17h6M3 17H1v-4l5-5h7l3 4h2l2 2v3h-2"/></svg>
         </div>
-        <div style="width:100%;height:8px;background:rgba(124,58,237,0.2);border-radius:4px;overflow:hidden;">
-          <div style="width:{{ stats.sales_count if stats.sales_count else 0 }}%;height:100%;background:#7c3aed;transition:width 0.3s;"></div>
+        <div>
+          <div style="font-size:0.85rem;font-weight:600;color:var(--text);">Motorcycles for Rent</div>
+          <div style="font-size:0.72rem;color:var(--muted);">{{ stats.available }} available</div>
         </div>
-      </div>
-      <div>
-        <div style="display:flex;justify-content:space-between;font-size:0.75rem;margin-bottom:6px;">
-          <span>Pending</span>
-          <span style="font-weight:700;color:var(--muted);">{{ stats.pending if stats.pending else 0 }}%</span>
+        <span style="margin-left:auto;color:var(--muted);font-size:0.75rem;">→</span>
+      </a>
+      <a href="{{ url_for('motors_sale') }}" style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--surface2);border-radius:9px;text-decoration:none;transition:background 0.2s;" onmouseover="this.style.background='var(--surface3)'" onmouseout="this.style.background='var(--surface2)'">
+        <div style="width:36px;height:36px;border-radius:8px;background:rgba(22,163,74,0.1);display:flex;align-items:center;justify-content:center;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2"><circle cx="6" cy="17" r="3"/><circle cx="18" cy="17" r="3"/><path d="M9 17h6M3 17H1v-4l5-5h7l3 4h2l2 2v3h-2"/><line x1="18" y1="5" x2="18" y2="11"/><line x1="15" y1="8" x2="21" y2="8"/></svg>
         </div>
-        <div style="width:100%;height:8px;background:rgba(255,255,255,0.1);border-radius:4px;overflow:hidden;">
-          <div style="width:{{ stats.pending if stats.pending else 0 }}%;height:100%;background:rgba(255,255,255,0.3);transition:width 0.3s;"></div>
+        <div>
+          <div style="font-size:0.85rem;font-weight:600;color:var(--text);">Motorcycles for Sale</div>
+          <div style="font-size:0.72rem;color:var(--muted);">{{ stats.sale_motors_available }} available</div>
         </div>
-      </div>
-      <div>
-        <div style="display:flex;justify-content:space-between;font-size:0.75rem;margin-bottom:6px;">
-          <span>Conversion</span>
-          <span style="font-weight:700;color:#0891b2;">{{ ((stats.sales_count / (stats.sales_count + stats.pending + 1)) * 100)|int }}%</span>
+        <span style="margin-left:auto;color:var(--muted);font-size:0.75rem;">→</span>
+      </a>
+      <a href="{{ url_for('customers') }}" style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--surface2);border-radius:9px;text-decoration:none;transition:background 0.2s;" onmouseover="this.style.background='var(--surface3)'" onmouseout="this.style.background='var(--surface2)'">
+        <div style="width:36px;height:36px;border-radius:8px;background:rgba(234,179,8,0.1);display:flex;align-items:center;justify-content:center;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ca8a04" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
         </div>
-        <div style="width:100%;height:8px;background:rgba(8,145,178,0.2);border-radius:4px;overflow:hidden;">
-          <div style="width:{{ ((stats.sales_count / (stats.sales_count + stats.pending + 1)) * 100)|int }}%;height:100%;background:#0891b2;transition:width 0.3s;"></div>
+        <div>
+          <div style="font-size:0.85rem;font-weight:600;color:var(--text);">Customers</div>
+          <div style="font-size:0.72rem;color:var(--muted);">{{ stats.total_customers }} registered</div>
         </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Parts Custom Bar Chart -->
-  <div class="panel" style="padding:16px;">
-    <div class="panel-header" style="margin-bottom:16px;">
-      <div class="panel-title">INSTALLMENTS</div>
-    </div>
-    <div style="height:250px;">
-      <canvas id="partsChart"></canvas>
-    </div>
-  </div>
-
-  <!-- Installments Radial Progress -->
-  <div class="panel" style="padding:16px;">
-    <div class="panel-header" style="margin-bottom:16px;">
-      <div class="panel-title">PARTS & ORDERS</div>
-    </div>
-    <div style="height:250px;display:flex;align-items:center;justify-content:center;">
-      <canvas id="installmentsChart"></canvas>
+        <span style="margin-left:auto;color:var(--muted);font-size:0.75rem;">→</span>
+      </a>
+      <a href="{{ url_for('installments') }}" style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--surface2);border-radius:9px;text-decoration:none;transition:background 0.2s;" onmouseover="this.style.background='var(--surface3)'" onmouseout="this.style.background='var(--surface2)'">
+        <div style="width:36px;height:36px;border-radius:8px;background:rgba(124,58,237,0.1);display:flex;align-items:center;justify-content:center;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+        </div>
+        <div>
+          <div style="font-size:0.85rem;font-weight:600;color:var(--text);">Installments</div>
+          <div style="font-size:0.72rem;color:var(--muted);">{{ stats.active_installments }} active plans</div>
+        </div>
+        <span style="margin-left:auto;color:var(--muted);font-size:0.75rem;">→</span>
+      </a>
     </div>
   </div>
 </div>
@@ -185,101 +240,10 @@
 
 {% block scripts %}
 <script>
-  // Register the plugin globally
-  Chart.register(ChartDataLabels);
-
-  const textColor = '#475569'; // Darker text for readability
-  
-  // 1. Rental Status - With Top Labels
-  const rentalCtx = document.getElementById('rentalChart').getContext('2d');
-  new Chart(rentalCtx, {
-    type: 'bar',
-    data: {
-      labels: ['Available', 'Active', 'Overdue'],
-      datasets: [{
-        data: [{{ stats.available }}, {{ stats.rented }}, {{ stats.overdue }}],
-        backgroundColor: ['#0ea5e9', '#22c55e', '#ef4444'],
-        borderRadius: 6,
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        datalabels: {
-          anchor: 'end',
-          align: 'top',
-          color: textColor,
-          font: { weight: 'bold', size: 12 },
-          formatter: (value) => value > 0 ? value : '' // Only show if > 0
-        }
-      },
-      scales: {
-        y: { beginAtZero: true, grid: { display: false }, ticks: { display: false } }, // Hide Y axis for cleaner look
-        x: { grid: { display: false } }
-      }
-    }
-  });
-
-  // 2. Parts Orders - Horizontal with Inline Labels
-  const partsCtx = document.getElementById('partsChart').getContext('2d');
-  new Chart(partsCtx, {
-    type: 'bar',
-    indexAxis: 'y',
-    data: {
-      labels: ['Pending', 'Processing', 'Shipped'],
-      datasets: [{
-        data: [{{ stats.pending_orders }}, 5, 12], // Example data
-        backgroundColor: ['#16a34a', '#d97706', '#088395'],
-        borderRadius: 4
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        datalabels: {
-          color: '#fff', // White text inside bars
-          anchor: 'center',
-          align: 'center',
-          font: { weight: 'bold' }
-        }
-      },
-      scales: {
-        x: { beginAtZero: true, grid: { display: false } }
-      }
-    }
-  });
-
-  // 3. Installments - Center Value Display
-  const installmentsCtx = document.getElementById('installmentsChart').getContext('2d');
-  new Chart(installmentsCtx, {
-    type: 'doughnut',
-    data: {
-      labels: ['Active', 'Completed', 'Pending'],
-      datasets: [{
-        data: [{{ stats.active_installments }}, 10, 4],
-        backgroundColor: ['#f59e0b', '#10b981', '#6366f1'],
-        borderWidth: 0
-      }]
-    },
-    options: {
-      cutout: '80%',
-      plugins: {
-        legend: { position: 'bottom' },
-        datalabels: {
-          color: textColor,
-          font: { weight: 'bold' },
-          formatter: (value, ctx) => {
-            let sum = ctx.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
-            let percentage = (value * 100 / sum).toFixed(0) + "%";
-            return percentage;
-          }
-        }
-      }
-    }
-  });
+  initFleetChart({{ stats.available }}, {{ stats.rented }}, {{ stats.overdue }});
+  initRevenueChart(
+    ['Sep','Oct','Nov','Dec','Jan','Feb'],
+    [12000, 18500, 14200, 22000, 19800, 25500]
+  );
 </script>
 {% endblock %}

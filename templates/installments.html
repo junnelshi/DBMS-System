@@ -2,52 +2,30 @@
 {% block title %}Installments{% endblock %}
 {% block page_title %}INSTALLMENTS{% endblock %}
 
+
 {% block content %}
 
-<!-- SUMMARY ROW -->
-<div class="summary-row">
-  {% set total_inst    = installments | length %}
-  {% set active_inst   = installments | selectattr('status', 'equalto', 'Active')   | list | length %}
-  {% set overdue_inst  = installments | selectattr('status', 'equalto', 'Overdue')  | list | length %}
-  {% set paid_inst     = installments | selectattr('status', 'equalto', 'Paid Off') | list | length %}
-
-  <div class="summary-card">
-    <div class="summary-label">Total Plans</div>
-    <div class="summary-value">{{ total_inst }}</div>
-  </div>
-  <div class="summary-card">
-    <div class="summary-label">Active</div>
-    <div class="summary-value" style="color:var(--accent);">{{ active_inst }}</div>
-  </div>
-  <div class="summary-card">
-    <div class="summary-label">Overdue</div>
-    <div class="summary-value" style="color:#dc2626;">{{ overdue_inst }}</div>
-  </div>
-  <div class="summary-card">
-    <div class="summary-label">Paid Off</div>
-    <div class="summary-value" style="color:#16a34a;">{{ paid_inst }}</div>
-  </div>
-</div>
-
-<!-- TABLE -->
-<div class="panel">
-  <div class="panel-header">
-    <div class="panel-title">INSTALLMENT PLANS</div>
+<div class="panel-header">
     <div style="display:flex;gap:10px;align-items:center;">
-      <input class="filter-input" id="inst-search"
-             placeholder="Search customer, motor..."
-             oninput="filterInstRows()" style="width:230px;"/>
-      <select class="filter-input" id="inst-status-filter" onchange="filterInstRows()">
+      <form method="POST" action="{{ url_for('installments_repair') }}" style="margin:0;">
+      </form>
+      <input type="text" id="instSearch" placeholder="Search customer, motor..."
+             oninput="filterTable()"
+             style="padding:7px 12px;border:1px solid var(--border);border-radius:8px;
+                    background:var(--surface2);color:var(--text);font-size:0.82rem;width:220px;">
+      <select id="instStatus" onchange="filterTable()"
+              style="padding:7px 12px;border:1px solid var(--border);border-radius:8px;
+                     background:var(--surface2);color:var(--text);font-size:0.82rem;">
         <option value="">All Status</option>
-        <option>Active</option>
-        <option>Overdue</option>
-        <option>Paid Off</option>
+        <option value="Active">Active</option>
+        <option value="Paid Off">Paid Off</option>
+        <option value="Overdue">Overdue</option>
       </select>
     </div>
   </div>
 
   <div class="table-wrap">
-    <table>
+    <table id="instTable">
       <thead>
         <tr>
           <th>#</th>
@@ -64,53 +42,51 @@
           <th>Actions</th>
         </tr>
       </thead>
-      <tbody id="inst-tbody">
+      <tbody>
         {% for inst in installments %}
-        {% set paid_months = inst.paid_months or 0 %}
-        {% set balance = inst.balance_amount or 0 %}
-        {% set progress_pct = ((paid_months / inst.term_months) * 100) | round(0) | int if inst.term_months > 0 else 0 %}
-        <tr data-customer="{{ inst.customer }}" data-motor="{{ inst.motor }}" data-status="{{ inst.status }}">
-          <td style="color:var(--muted2);">#{{ inst.id }}</td>
-          <td>
-            <div style="font-weight:600;">{{ inst.customer }}</div>
-            <div style="font-size:0.75rem;color:var(--muted);">{{ inst.customer_email }}</div>
-          </td>
-          <td>
-            <div>{{ inst.motor }}</div>
-            <div style="font-size:0.75rem;color:var(--muted);">{{ inst.plate }}</div>
-          </td>
-          <td style="font-weight:700;">&#8369;{{ '{:,.2f}'.format(inst.total_price) }}</td>
-          <td style="color:var(--accent2);">&#8369;{{ '{:,.2f}'.format(inst.down_payment) }}</td>
-          <td style="font-weight:600;color:#dc2626;">&#8369;{{ '{:,.2f}'.format(balance) }}</td>
-          <td style="font-weight:700;color:var(--accent);">&#8369;{{ '{:,.2f}'.format(inst.monthly_payment) }}</td>
-          <td style="font-size:0.82rem;">
-            {{ paid_months }}/{{ inst.term_months }} mo.
-            <div class="progress-bar" style="margin-top:4px;">
-              <div class="progress-fill" style="width:{{ progress_pct }}%;"></div>
-            </div>
-          </td>
-          <td>{{ paid_months }}</td>
-          <td style="font-size:0.8rem;color:{% if inst.status == 'Overdue' %}#dc2626{% else %}var(--muted){% endif %};">
-            {{ inst.next_due_date or '—' }}
-          </td>
-          <td><span class="status status-{{ inst.status.lower().replace(' ','-') }}">{{ inst.status }}</span></td>
-          <td style="white-space:nowrap;">
-            {% if inst.status in ['Active','Overdue'] %}
-            <button class="btn btn-success btn-sm"
-                    onclick="recordPayment({{ inst.id }}, {{ inst.monthly_payment }}, '{{ inst.customer }}')">
-              + Pay
-            </button>
-            <form id="payInstForm-{{ inst.id }}"
-                  action="{{ url_for('installment_pay', inst_id=inst.id) }}"
-                  method="POST" style="display:none;"></form>
+        <tr class="inst-row"
+            data-search="{{ inst.customer|lower }} {{ inst.motor|lower }}"
+            data-status="{{ inst.status }}">
+          <td style="color:var(--muted);font-size:0.8rem;">#{{ inst.id }}</td>
+          <td><strong>{{ inst.customer }}</strong>
+            {% if inst.customer_email %}
+            <div style="font-size:0.72rem;color:var(--muted);">{{ inst.customer_email }}</div>
             {% endif %}
-            <button class="btn btn-outline btn-sm"
-                    onclick="viewPaymentHistory({{ inst.id }})">History</button>
+          </td>
+          <td>
+            {{ inst.motor }}
+            <div style="font-size:0.72rem;color:var(--muted);">{{ inst.plate }}</div>
+          </td>
+          <td style="font-weight:600;">₱{{ '{:,.2f}'.format(inst.total_price) }}</td>
+          <td>₱{{ '{:,.2f}'.format(inst.down_payment or 0) }}</td>
+          <td style="font-weight:700;">
+            ₱{{ '{:,.2f}'.format(inst.balance_amount or 0) }}
+          </td>
+          <td style="font-weight:600;">₱{{ '{:,.2f}'.format(inst.monthly_payment) }}</td>
+          <td style="text-align:center;">{{ inst.paid_months }}/{{ inst.term_months }}</td>
+          <td style="text-align:center;">{{ inst.paid_months }}</td>
+          <td style="font-size:0.82rem;color:{% if inst.status == 'Paid Off' %}var(--muted){% elif inst.next_due_date and inst.next_due_date < today %}#dc2626{% else %}var(--text){% endif %};">
+            {% if inst.status == 'Paid Off' %}—
+            {% elif inst.next_due_date %}{{ inst.next_due_date }}
+            {% else %}—{% endif %}
+          </td>
+          <td>
+            <span class="status status-{{ inst.status.lower().replace(' ','-') }}">{{ inst.status }}</span>
+          </td>
+          <td>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+              {% if inst.status != 'Paid Off' %}
+              <button onclick="openPayModal({{ inst.id }}, {{ inst.monthly_payment }}, '{{ inst.customer }}')"
+                      class="btn-sm btn-primary">Pay</button>
+              {% endif %}
+              <a href="{{ url_for('installment_history', inst_id=inst.id) }}"
+                 class="btn-sm btn-primary">History</a>
+            </div>
           </td>
         </tr>
         {% else %}
         <tr>
-          <td colspan="12" style="text-align:center;color:var(--muted);padding:32px;">
+          <td colspan="12" style="text-align:center;color:var(--muted);padding:40px;">
             No installment plans yet. Create a sale with Installment payment to get started.
           </td>
         </tr>
@@ -120,33 +96,41 @@
   </div>
 </div>
 
-
-<!-- ── PAYMENT CONFIRM MODAL ── -->
-<div class="modal-overlay" id="payModal">
-  <div class="modal" style="max-width:400px;">
+<!-- PAY MODAL -->
+<div id="payModal" class="modal-overlay" style="display:none;">
+  <div class="modal" style="max-width:420px;">
     <div class="modal-header">
-      <div class="modal-title">RECORD PAYMENT</div>
-      <button class="modal-close" onclick="closeModal('payModal')">&#x2715;</button>
+      <h3 class="modal-title">Record Payment</h3>
+      <button class="modal-close" onclick="closePayModal()">✕</button>
     </div>
-    <div style="padding:0 0 16px;">
-      <div id="pay-modal-info" style="background:var(--surface3);border-radius:10px;padding:14px;margin-bottom:16px;font-size:0.88rem;"></div>
-      <div class="form-group">
-        <label class="form-label">Amount Paid (₱)</label>
-        <input class="form-control" id="pay-amount" type="number" step="0.01"/>
+    <form method="POST" id="payForm">
+      <div class="modal-body">
+        <p style="color:var(--muted);font-size:0.85rem;margin-bottom:16px;">
+          Customer: <strong id="payCustomerName"></strong>
+        </p>
+        <div class="form-group">
+          <label class="form-label">Amount (₱) *</label>
+          <input type="number" name="amount" id="payAmount" class="form-input"
+                 step="0.01" min="1" required placeholder="0.00">
+          <small style="color:var(--muted);font-size:0.75rem;">
+            Suggested monthly: ₱<span id="payMonthly"></span>
+          </small>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Payment Date *</label>
+          <input type="date" name="pay_date" class="form-input" required
+                 value="{{ today }}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Notes</label>
+          <input type="text" name="notes" class="form-input" placeholder="Optional notes">
+        </div>
       </div>
-      <div class="form-group">
-        <label class="form-label">Payment Date</label>
-        <input class="form-control" id="pay-date" type="date"/>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" onclick="closePayModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary">Record Payment</button>
       </div>
-      <div class="form-group">
-        <label class="form-label">Notes</label>
-        <input class="form-control" id="pay-notes" type="text" placeholder="Optional..."/>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-outline" onclick="closeModal('payModal')">Cancel</button>
-      <button class="btn btn-primary" onclick="submitPayment()">RECORD PAYMENT</button>
-    </div>
+    </form>
   </div>
 </div>
 
@@ -154,48 +138,31 @@
 
 {% block scripts %}
 <script>
-  let activeInstId = null;
+const today = "{{ today }}";
 
-  function recordPayment(instId, monthly, customerName) {
-    activeInstId = instId;
-    document.getElementById('pay-amount').value = monthly.toFixed(2);
-    document.getElementById('pay-date').value   = new Date().toISOString().split('T')[0];
-    document.getElementById('pay-modal-info').innerHTML =
-      `<strong>${customerName}</strong><br>Monthly: <strong style="color:var(--accent);">₱${monthly.toLocaleString()}</strong>`;
-    openModal('payModal');
-  }
+function openPayModal(instId, monthly, customerName) {
+  document.getElementById('payForm').action = `/installments/pay/${instId}`;
+  document.getElementById('payCustomerName').textContent = customerName;
+  document.getElementById('payMonthly').textContent = monthly.toLocaleString('en-PH', {minimumFractionDigits:2});
+  document.getElementById('payAmount').value = monthly.toFixed(2);
+  document.getElementById('payModal').style.display = 'flex';
+}
+function closePayModal() {
+  document.getElementById('payModal').style.display = 'none';
+}
 
-  function submitPayment() {
-    if (!activeInstId) return;
-    const amount = document.getElementById('pay-amount').value;
-    const date   = document.getElementById('pay-date').value;
-    const notes  = document.getElementById('pay-notes').value;
+function filterTable() {
+  const search = document.getElementById('instSearch').value.toLowerCase();
+  const status = document.getElementById('instStatus').value;
+  document.querySelectorAll('.inst-row').forEach(row => {
+    const matchSearch = !search || row.dataset.search.includes(search);
+    const matchStatus = !status || row.dataset.status === status;
+    row.style.display = (matchSearch && matchStatus) ? '' : 'none';
+  });
+}
 
-    // Build a hidden form and submit
-    const form = document.createElement('form');
-    form.method = 'POST';
-    form.action = `/installments/pay/${activeInstId}`;
-    [['amount', amount], ['pay_date', date], ['notes', notes]].forEach(([k,v]) => {
-      const i = document.createElement('input');
-      i.type = 'hidden'; i.name = k; i.value = v;
-      form.appendChild(i);
-    });
-    document.body.appendChild(form);
-    form.submit();
-  }
-
-  function viewPaymentHistory(instId) {
-    window.location.href = `/installments/${instId}/history`;
-  }
-
-  function filterInstRows() {
-    const search = (document.getElementById('inst-search')?.value || '').toLowerCase();
-    const status = document.getElementById('inst-status-filter')?.value || '';
-    document.querySelectorAll('#inst-tbody tr[data-customer]').forEach(row => {
-      const text = `${row.dataset.customer} ${row.dataset.motor}`.toLowerCase();
-      const match = text.includes(search) && (!status || row.dataset.status === status);
-      row.style.display = match ? '' : 'none';
-    });
-  }
+document.getElementById('payModal').addEventListener('click', function(e) {
+  if (e.target === this) closePayModal();
+});
 </script>
 {% endblock %}
